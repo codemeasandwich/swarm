@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+#
+# Python-specific checks
+#
+# Runs: pytest, mypy, ruff (or pylint fallback)
+#
+# To enable: rename to check-python.sh
+#   mv .hooks/pre-commit.d/check-python.sh.disabled .hooks/pre-commit.d/check-python.sh
+#
+# Exit codes:
+#   0 = pass
+#   1 = fail
+#   2 = skip (no Python files)
+
+# === Setup ===
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HOOKS_DIR="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/utils.sh"
+load_config "$HOOKS_DIR"
+
+ERROR=0
+
+# === Get Python files ===
+PYTHON_FILES=$(get_staged_files_by_ext "\.py$")
+if [ -z "$PYTHON_FILES" ]; then
+    exit 2
+fi
+
+echo ""
+
+# === Check: pytest ===
+if command -v pytest &>/dev/null; then
+    echo "  Running pytest..."
+    if pytest --tb=short -q 2>/dev/null; then
+        print_success "pytest passed"
+    else
+        print_error "pytest failed"
+        ERROR=1
+    fi
+elif command -v python &>/dev/null && python -c "import pytest" 2>/dev/null; then
+    echo "  Running pytest via python -m..."
+    if python -m pytest --tb=short -q 2>/dev/null; then
+        print_success "pytest passed"
+    else
+        print_error "pytest failed"
+        ERROR=1
+    fi
+else
+    print_warning "pytest not found, skipping tests"
+fi
+
+# === Check: mypy ===
+if command -v mypy &>/dev/null; then
+    echo "  Running mypy..."
+    if echo "$PYTHON_FILES" | xargs mypy --ignore-missing-imports 2>/dev/null; then
+        print_success "mypy passed"
+    else
+        print_error "mypy type check failed"
+        ERROR=1
+    fi
+else
+    print_warning "mypy not found, skipping type check"
+fi
+
+# === Check: ruff (or pylint fallback) ===
+if command -v ruff &>/dev/null; then
+    echo "  Running ruff..."
+    if echo "$PYTHON_FILES" | xargs ruff check 2>/dev/null; then
+        print_success "ruff passed"
+    else
+        print_error "ruff linting failed"
+        ERROR=1
+    fi
+elif command -v pylint &>/dev/null; then
+    echo "  Running pylint..."
+    if echo "$PYTHON_FILES" | xargs pylint --errors-only 2>/dev/null; then
+        print_success "pylint passed"
+    else
+        print_error "pylint failed"
+        ERROR=1
+    fi
+else
+    print_warning "No linter found (ruff/pylint), skipping lint check"
+fi
+
+# === Check: black (formatting) ===
+if command -v black &>/dev/null; then
+    echo "  Checking black formatting..."
+    if echo "$PYTHON_FILES" | xargs black --check --quiet 2>/dev/null; then
+        print_success "black formatting OK"
+    else
+        print_error "black formatting issues found"
+        echo "       Run: black <files> to fix"
+        ERROR=1
+    fi
+fi
+
+echo ""
+
+exit $ERROR

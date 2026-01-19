@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+#
+# Commit message validator
+#
+# Enforces Conventional Commits format:
+#   <type>: <message>
+#
+# Allowed types (configurable in config.sh):
+#   bug, fix, feat, docs, style, refactor, perf, test, build, ci, chore
+#
+# Rules:
+#   1. First line must match: type: message
+#   2. First line max 80 characters (configurable)
+#   3. Merge commits are skipped
+
+# === Resolve paths ===
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ "$SCRIPT_DIR" == *".git/hooks"* ]]; then
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    HOOKS_DIR="$REPO_ROOT/.hooks"
+else
+    HOOKS_DIR="$SCRIPT_DIR"
+fi
+
+# Source utilities
+source "$HOOKS_DIR/pre-commit.d/utils.sh"
+load_config "$HOOKS_DIR"
+
+# === Configuration ===
+MAX_LENGTH="${COMMIT_MSG_MAX_LENGTH:-80}"
+ALLOWED_TYPES="${COMMIT_TYPES:-bug|fix|feat|docs|style|refactor|perf|test|build|ci|chore}"
+
+# === Get commit message ===
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(head -n 1 "$COMMIT_MSG_FILE")
+
+# === Skip merge commits ===
+if is_merge_commit; then
+    exit 0
+fi
+
+# Also skip if message starts with "Merge"
+if [[ "$COMMIT_MSG" =~ ^Merge ]]; then
+    exit 0
+fi
+
+# === Validate format ===
+# Pattern: type: message (with space after colon)
+PATTERN="^($ALLOWED_TYPES)(!)?:[[:space:]]+.+"
+
+if ! echo "$COMMIT_MSG" | grep -qE "$PATTERN"; then
+    echo ""
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${RED}  ✗ Invalid Commit Message Format${NC}"
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo "  Expected: <type>: <message>"
+    echo "  Got:      $COMMIT_MSG"
+    echo ""
+    echo "  Allowed types:"
+    echo "    bug      - Bug report or fix for a bug"
+    echo "    fix      - A bug fix"
+    echo "    feat     - A new feature"
+    echo "    docs     - Documentation only changes"
+    echo "    style    - Code style changes (formatting, etc)"
+    echo "    refactor - Code refactoring"
+    echo "    perf     - Performance improvements"
+    echo "    test     - Adding or updating tests"
+    echo "    build    - Build system changes"
+    echo "    ci       - CI/CD changes"
+    echo "    chore    - Other changes (deps, configs, etc)"
+    echo ""
+    echo "  Examples:"
+    echo "    feat: add user authentication"
+    echo "    fix: resolve memory leak in parser"
+    echo "    docs: update API documentation"
+    echo ""
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    exit 1
+fi
+
+# === Validate length ===
+MSG_LENGTH=${#COMMIT_MSG}
+if [ $MSG_LENGTH -gt $MAX_LENGTH ]; then
+    echo ""
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${RED}  ✗ Commit Message Too Long${NC}"
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo "  Maximum: $MAX_LENGTH characters"
+    echo "  Current: $MSG_LENGTH characters"
+    echo ""
+    echo "  Keep the summary line concise."
+    echo "  Add details in the commit body (after a blank line)."
+    echo ""
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    exit 1
+fi
+
+exit 0

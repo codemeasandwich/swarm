@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+#
+# Pre-commit validation orchestrator
+#
+# Runs all enabled checks in pre-commit.d/ directory.
+# Exit codes: 0 = pass, 1 = fail
+#
+# Checks are run in alphabetical order. To control order,
+# prefix filenames with numbers: 01-check-foo.sh, 02-check-bar.sh
+
+set -e
+
+# === Resolve paths ===
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Handle being called from .git/hooks/
+if [[ "$SCRIPT_DIR" == *".git/hooks"* ]]; then
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    HOOKS_DIR="$REPO_ROOT/.hooks"
+    CHECKS_DIR="$HOOKS_DIR/pre-commit.d"
+else
+    HOOKS_DIR="$SCRIPT_DIR"
+    CHECKS_DIR="$HOOKS_DIR/pre-commit.d"
+fi
+
+cd "$(git rev-parse --show-toplevel)"
+
+# === Source utilities and config ===
+source "$CHECKS_DIR/utils.sh"
+load_config "$HOOKS_DIR"
+
+# === Main execution ===
+echo ""
+print_header "Pre-Commit Checks"
+echo ""
+
+OVERALL_STATUS=0
+CHECKS_RUN=0
+CHECKS_PASSED=0
+CHECKS_FAILED=0
+CHECKS_SKIPPED=0
+
+# Run all check-*.sh scripts (skip *.disabled)
+for check in "$CHECKS_DIR"/check-*.sh; do
+    # Skip if no matches (glob didn't expand)
+    [ -f "$check" ] || continue
+
+    # Skip disabled checks
+    [[ "$check" == *.disabled ]] && continue
+
+    check_name=$(basename "$check" .sh | sed 's/^check-//')
+
+    # Run the check
+    ((CHECKS_RUN++)) || true
+
+    set +e
+    bash "$check"
+    check_result=$?
+    set -e
+
+    case $check_result in
+        0)
+            print_check_result "$check_name" 0
+            ((CHECKS_PASSED++)) || true
+            ;;
+        2)
+            print_check_result "$check_name" 2
+            ((CHECKS_SKIPPED++)) || true
+            ;;
+        *)
+            print_check_result "$check_name" 1
+            ((CHECKS_FAILED++)) || true
+            OVERALL_STATUS=1
+            ;;
+    esac
+done
+
+# === Summary ===
+echo ""
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+if [ $CHECKS_RUN -eq 0 ]; then
+    echo -e "  ${YELLOW}No checks found${NC}"
+    echo -e "  Add check scripts to .hooks/pre-commit.d/"
+elif [ $OVERALL_STATUS -eq 0 ]; then
+    echo -e "  ${GREEN}All checks passed${NC} ($CHECKS_PASSED passed"
+    [ $CHECKS_SKIPPED -gt 0 ] && echo -n ", $CHECKS_SKIPPED skipped"
+    echo ")"
+else
+    echo -e "  ${RED}Commit blocked${NC} ($CHECKS_FAILED failed, $CHECKS_PASSED passed)"
+fi
+
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+exit $OVERALL_STATUS

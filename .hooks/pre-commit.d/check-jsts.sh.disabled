@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+#
+# JavaScript/TypeScript checks
+#
+# Runs: TypeScript compiler, Jest, ESLint
+#
+# To enable: rename to check-jsts.sh
+#   mv .hooks/pre-commit.d/check-jsts.sh.disabled .hooks/pre-commit.d/check-jsts.sh
+#
+# Exit codes:
+#   0 = pass
+#   1 = fail
+#   2 = skip (no JS/TS files)
+
+# === Setup ===
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HOOKS_DIR="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/utils.sh"
+load_config "$HOOKS_DIR"
+
+ERROR=0
+
+# === Get JS/TS files ===
+JSTS_FILES=$(get_staged_files_by_ext "\.(js|ts|jsx|tsx)$")
+if [ -z "$JSTS_FILES" ]; then
+    exit 2
+fi
+
+echo ""
+
+# === Detect package manager ===
+get_runner() {
+    if [ -f "bun.lockb" ] && command -v bun &>/dev/null; then
+        echo "bun"
+    elif [ -f "pnpm-lock.yaml" ] && command -v pnpm &>/dev/null; then
+        echo "pnpm"
+    elif [ -f "yarn.lock" ] && command -v yarn &>/dev/null; then
+        echo "yarn"
+    elif command -v npx &>/dev/null; then
+        echo "npx"
+    else
+        echo ""
+    fi
+}
+
+RUNNER=$(get_runner)
+if [ -z "$RUNNER" ]; then
+    print_warning "No package manager found (npm/yarn/pnpm/bun)"
+    exit 2
+fi
+
+# === Check: TypeScript ===
+if [ -f "tsconfig.json" ]; then
+    echo "  Running TypeScript compiler..."
+    if $RUNNER tsc --noEmit 2>/dev/null; then
+        print_success "TypeScript compilation passed"
+    else
+        print_error "TypeScript compilation failed"
+        ERROR=1
+    fi
+fi
+
+# === Check: Jest ===
+HAS_JEST=false
+if [ -f "jest.config.js" ] || [ -f "jest.config.ts" ] || [ -f "jest.config.mjs" ]; then
+    HAS_JEST=true
+elif [ -f "package.json" ] && grep -q '"jest"' package.json 2>/dev/null; then
+    HAS_JEST=true
+fi
+
+if $HAS_JEST; then
+    echo "  Running Jest tests..."
+    if $RUNNER jest --passWithNoTests --coverage 2>/dev/null; then
+        print_success "Jest tests passed"
+    else
+        print_error "Jest tests failed"
+        ERROR=1
+    fi
+fi
+
+# === Check: Vitest (alternative to Jest) ===
+if [ -f "vitest.config.ts" ] || [ -f "vitest.config.js" ]; then
+    echo "  Running Vitest..."
+    if $RUNNER vitest run 2>/dev/null; then
+        print_success "Vitest tests passed"
+    else
+        print_error "Vitest tests failed"
+        ERROR=1
+    fi
+fi
+
+# === Check: ESLint ===
+HAS_ESLINT=false
+if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f ".eslintrc.yml" ] || [ -f "eslint.config.js" ] || [ -f "eslint.config.mjs" ]; then
+    HAS_ESLINT=true
+elif [ -f "package.json" ] && grep -q '"eslint"' package.json 2>/dev/null; then
+    HAS_ESLINT=true
+fi
+
+if $HAS_ESLINT; then
+    echo "  Running ESLint..."
+    if echo "$JSTS_FILES" | xargs $RUNNER eslint 2>/dev/null; then
+        print_success "ESLint passed"
+    else
+        print_error "ESLint failed"
+        ERROR=1
+    fi
+fi
+
+# === Check: Prettier (formatting) ===
+if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ] || [ -f "prettier.config.js" ]; then
+    echo "  Checking Prettier formatting..."
+    if echo "$JSTS_FILES" | xargs $RUNNER prettier --check 2>/dev/null; then
+        print_success "Prettier formatting OK"
+    else
+        print_error "Prettier formatting issues found"
+        echo "       Run: $RUNNER prettier --write <files> to fix"
+        ERROR=1
+    fi
+fi
+
+echo ""
+
+exit $ERROR
