@@ -1,15 +1,15 @@
 """Terminal process management for agent subprocesses."""
 
+from __future__ import annotations
+
+import logging
 import os
-import signal
 import subprocess
 import threading
-import queue
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, List, Callable, Any
-import logging
+from typing import Optional, Callable
 
 logger = logging.getLogger(__name__)
 

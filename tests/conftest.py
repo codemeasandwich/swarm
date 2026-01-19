@@ -124,7 +124,13 @@ class CLISimulator:
     def run_agent_session(self, agent_name):
         """Run an agent session with mocked input."""
         from agent_cli import run_agent
-        with patch('agent_cli.COMM_FILE', self.comm_file_path):
+        from config import AgentConfig, reset_config
+        import config
+
+        # Reset config and create a custom one with our temp file
+        reset_config()
+        test_config = AgentConfig(comm_file=self.comm_file_path)
+        with patch.object(config, '_config', test_config):
             with patch('builtins.input', self.mock_input):
                 with patch('sys.stdout', new_callable=StringIO) as mock_out:
                     run_agent(agent_name)
@@ -135,3 +141,31 @@ class CLISimulator:
 def cli_sim(temp_comm_file):
     """Create a CLI simulator."""
     return CLISimulator(temp_comm_file)
+
+
+@pytest.fixture
+def mock_config(temp_comm_file):
+    """Create a mock config fixture that patches the config module.
+
+    Usage:
+        def test_something(mock_config, temp_comm_file):
+            with mock_config:
+                # code that uses get_config() will get temp_comm_file
+                run_watcher()
+    """
+    from config import AgentConfig, reset_config
+    import config
+
+    class ConfigPatcher:
+        def __enter__(self):
+            reset_config()
+            self.test_config = AgentConfig(comm_file=temp_comm_file)
+            self.patcher = patch.object(config, '_config', self.test_config)
+            self.patcher.__enter__()
+            return self.test_config
+
+        def __exit__(self, *args):
+            self.patcher.__exit__(*args)
+            reset_config()
+
+    return ConfigPatcher()

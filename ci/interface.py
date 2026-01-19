@@ -1,10 +1,12 @@
 """Abstract CI provider interface."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Callable, Awaitable, Dict, Any, List
+from typing import Optional, Callable, Awaitable, Any
 
 
 class BuildStatusType(Enum):

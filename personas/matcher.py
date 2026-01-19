@@ -1,6 +1,8 @@
 """Role-based task matching for personas."""
 
-from typing import List, Optional, Dict, Set
+from __future__ import annotations
+
+from typing import Optional
 
 from plan.models import ProjectPlan, Task, TaskStatus, Persona
 from .models import PersonaConfig, AgentInstance

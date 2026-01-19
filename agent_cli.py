@@ -19,30 +19,35 @@ Inside agent session:
   ack                - Acknowledge/clear deliveries
 """
 
+from __future__ import annotations
+
 import argparse
 import json
-import sys
-import time
-import signal
+import logging
 import os
+import signal
+import sys
+import threading
+import time
 from pathlib import Path
 from datetime import datetime
 
 from agent_comm import CommunicationsFile, FileWatcher, AgentStatus
+from config import get_config
 
-
-COMM_FILE = "communications.json"
+logger = logging.getLogger(__name__)
 
 
 def run_watcher():
     """Run the file watcher as a standalone process."""
+    config = get_config()
     print("=" * 60)
     print("  AGENT COMMUNICATION WATCHER")
-    print("  Monitoring: communications.json")
+    print(f"  Monitoring: {config.comm_file}")
     print("  Press Ctrl+C to stop")
     print("=" * 60)
-    
-    comm_file = CommunicationsFile(COMM_FILE)
+
+    comm_file = CommunicationsFile(config.comm_file)
     last_hash = ""
     
     def handle_signal(sig, frame):
@@ -57,7 +62,7 @@ def run_watcher():
             current_hash = comm_file.get_file_hash()
             
             if current_hash != last_hash and last_hash != "":
-                data = comm_file._read_data()
+                data = comm_file.read_raw()
                 updated_by = data.get("_meta", {}).get("last_updated_by", "unknown")
                 timestamp = data.get("_meta", {}).get("last_updated", "")
                 
@@ -89,23 +94,24 @@ def run_watcher():
                 print("=" * 60)
                 
             last_hash = current_hash
-            time.sleep(0.5)
+            time.sleep(config.poll_interval)
             
         except KeyboardInterrupt:
             break
-        except Exception as e:
-            print(f"[Watcher] Error: {e}")
+        except Exception:
+            logger.exception("Error in watcher loop")
             time.sleep(1)
 
 
 def run_agent(agent_name: str):
     """Run an interactive agent session."""
+    config = get_config()
     print("=" * 60)
     print(f"  AGENT: {agent_name}")
     print("  Type 'help' for commands")
     print("=" * 60)
-    
-    comm_file = CommunicationsFile(COMM_FILE)
+
+    comm_file = CommunicationsFile(config.comm_file)
     
     # Initialize agent in the file
     status = comm_file.get_agent(agent_name)
@@ -120,8 +126,6 @@ def run_agent(agent_name: str):
     show_my_status(comm_file, agent_name)
     
     # Start background watcher thread
-    import threading
-    
     last_hash = comm_file.get_file_hash()
     running = True
     
@@ -131,7 +135,7 @@ def run_agent(agent_name: str):
             try:
                 current_hash = comm_file.get_file_hash()
                 if current_hash != last_hash:
-                    data = comm_file._read_data()
+                    data = comm_file.read_raw()
                     updated_by = data.get("_meta", {}).get("last_updated_by")
                     
                     if updated_by and updated_by != agent_name:
@@ -161,9 +165,9 @@ def run_agent(agent_name: str):
                         print(f"\n[{agent_name}] > ", end="", flush=True)
                     
                     last_hash = current_hash
-                time.sleep(0.5)
+                time.sleep(config.poll_interval)
             except Exception:
-                pass
+                logger.debug("Error in background watcher thread", exc_info=True)
     
     watcher_thread = threading.Thread(target=watch_for_updates, daemon=True)
     watcher_thread.start()
@@ -299,7 +303,7 @@ def run_agent(agent_name: str):
             
             elif command == "all":
                 # Show full JSON state
-                data = comm_file._read_data()
+                data = comm_file.read_raw()
                 print(json.dumps(data, indent=2))
             
             elif command == "help":
@@ -355,13 +359,14 @@ def show_my_status(comm_file, agent_name):
 
 def show_status():
     """Show status of all agents."""
-    comm_file = CommunicationsFile(COMM_FILE)
+    config = get_config()
+    comm_file = CommunicationsFile(config.comm_file)
     
     print("=" * 60)
     print("  AGENT STATUS OVERVIEW")
     print("=" * 60)
     
-    data = comm_file._read_data()
+    data = comm_file.read_raw()
     meta = data.get("_meta", {})
     print(f"Last updated: {meta.get('last_updated', 'Never')}")
     print(f"Updated by:   {meta.get('last_updated_by', 'N/A')}")

@@ -1,12 +1,16 @@
 """Ralph Wiggum loop - continuous retry with context reset."""
 
+from __future__ import annotations
+
 import asyncio
+import json
+import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Callable, Awaitable, List
-import logging
+from typing import Optional, List
 
 from plan.models import Task, TaskStatus, ProjectPlan
 from personas.models import AgentInstance, PersonaConfig, LifecycleState
@@ -18,6 +22,7 @@ from ci.interface import CIProvider, CIEvent
 from ci.events import CIEventType
 
 from .context import ContextSnapshot, ContextBuilder
+from config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -283,7 +288,8 @@ Start by reading .claude.md and the current state of communications.json.
         process: AgentProcess,
     ) -> LoopResult:
         """Wait for an agent to reach a breakpoint."""
-        check_interval = 2.0  # Check every 2 seconds
+        config = get_config()
+        check_interval = config.breakpoint_check_interval
 
         while self._running and process.is_running:
             # Check communications.json for breakpoint
@@ -311,7 +317,6 @@ Start by reading .claude.md and the current state of communications.json.
     def _check_for_breakpoint(self, agent_id: str) -> Optional[dict]:
         """Check communications.json for a breakpoint from an agent."""
         try:
-            import json
             data = json.loads(self.comm_file_path.read_text())
             agent_data = data.get(agent_id, {})
 
@@ -403,7 +408,6 @@ Start by reading .claude.md and the current state of communications.json.
 
     def _extract_pr_number(self, pr_url: str) -> Optional[int]:
         """Extract PR number from a GitHub PR URL."""
-        import re
         # Match patterns like:
         # https://github.com/owner/repo/pull/123
         # https://github.com/owner/repo/pull/123/files
@@ -419,10 +423,11 @@ Start by reading .claude.md and the current state of communications.json.
             logger.error(f"Could not extract PR number from URL: {pr_url}")
             return False
 
+        config = get_config()
         try:
             pr_info = await self.ci_provider.wait_for_pr_merge(
                 pr_number=pr_number,
-                timeout=600,
+                timeout=config.pr_merge_timeout,
             )
             return pr_info.is_merged()
         except (TimeoutError, RuntimeError) as e:

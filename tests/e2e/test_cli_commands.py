@@ -469,32 +469,32 @@ class TestCLIMainEntryPoints:
         # Should print help or usage
         assert "agent" in captured.out.lower() or "watcher" in captured.out.lower()
 
-    def test_main_status_command(self, temp_comm_file, capsys):
+    def test_main_status_command(self, temp_comm_file, mock_config, capsys):
         """Test main() with 'status' command."""
         comm = CommunicationsFile(temp_comm_file)
         comm.update_agent("agent1", AgentStatus(mission="Test mission"))
 
         with patch('sys.argv', ['agent_cli.py', 'status']):
-            with patch('agent_cli.COMM_FILE', temp_comm_file):
+            with mock_config:
                 main()
 
         captured = capsys.readouterr()
         assert "STATUS" in captured.out.upper() or "agent1" in captured.out
 
-    def test_main_agent_command(self, temp_comm_file, capsys):
+    def test_main_agent_command(self, temp_comm_file, mock_config, capsys):
         """Test main() with 'agent' command."""
         with patch('sys.argv', ['agent_cli.py', 'agent', 'test']):
-            with patch('agent_cli.COMM_FILE', temp_comm_file):
+            with mock_config:
                 with patch('builtins.input', side_effect=EOFError):
                     main()
 
         captured = capsys.readouterr()
         assert "test" in captured.out.lower()
 
-    def test_main_watcher_command(self, temp_comm_file, capsys):
+    def test_main_watcher_command(self, temp_comm_file, mock_config, capsys):
         """Test main() with 'watcher' command starts and handles interrupt."""
         with patch('sys.argv', ['agent_cli.py', 'watcher']):
-            with patch('agent_cli.COMM_FILE', temp_comm_file):
+            with mock_config:
                 # Simulate immediate keyboard interrupt
                 with patch('time.sleep', side_effect=KeyboardInterrupt):
                     main()
@@ -506,15 +506,15 @@ class TestCLIMainEntryPoints:
 class TestCLIShowStatus:
     """Test show_status function."""
 
-    def test_show_status_no_agents(self, temp_comm_file, capsys):
+    def test_show_status_no_agents(self, temp_comm_file, mock_config, capsys):
         """Test show_status with no agents."""
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             show_status()
 
         captured = capsys.readouterr()
         assert "No agents registered" in captured.out
 
-    def test_show_status_with_agents(self, temp_comm_file, capsys):
+    def test_show_status_with_agents(self, temp_comm_file, mock_config, capsys):
         """Test show_status with existing agents."""
         comm = CommunicationsFile(temp_comm_file)
         comm.update_agent("agent1", AgentStatus(
@@ -528,7 +528,7 @@ class TestCLIShowStatus:
             added=[["agent1", "Delivery", "Original"]]
         ))
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             show_status()
 
         captured = capsys.readouterr()
@@ -536,12 +536,12 @@ class TestCLIShowStatus:
         assert "Test mission" in captured.out
         assert "agent2" in captured.out
 
-    def test_show_status_shows_metadata(self, temp_comm_file, capsys):
+    def test_show_status_shows_metadata(self, temp_comm_file, mock_config, capsys):
         """Test show_status displays last_updated metadata."""
         comm = CommunicationsFile(temp_comm_file)
         comm.update_agent("agent1", AgentStatus(mission="Test"))
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             show_status()
 
         captured = capsys.readouterr()
@@ -551,7 +551,7 @@ class TestCLIShowStatus:
 class TestCLIShowMyStatus:
     """Test show_my_status function."""
 
-    def test_show_my_status_full(self, temp_comm_file, capsys):
+    def test_show_my_status_full(self, temp_comm_file, mock_config, capsys):
         """Test show_my_status with all fields."""
         comm = CommunicationsFile(temp_comm_file)
         comm.update_agent("my_agent", AgentStatus(
@@ -563,7 +563,7 @@ class TestCLIShowMyStatus:
             added=[["from", "desc", "orig"]]
         ))
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             show_my_status(comm, "my_agent")
 
         captured = capsys.readouterr()
@@ -574,23 +574,23 @@ class TestCLIShowMyStatus:
         assert "outgoing requests" in captured.out.lower()
         assert "Deliveries" in captured.out
 
-    def test_show_my_status_empty_fields(self, temp_comm_file, capsys):
+    def test_show_my_status_empty_fields(self, temp_comm_file, mock_config, capsys):
         """Test show_my_status with empty fields shows dashes."""
         comm = CommunicationsFile(temp_comm_file)
         comm.update_agent("empty_agent", AgentStatus())
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             show_my_status(comm, "empty_agent")
 
         captured = capsys.readouterr()
         # Empty fields should show as "-"
         assert "-" in captured.out
 
-    def test_show_my_status_nonexistent_agent(self, temp_comm_file, capsys):
+    def test_show_my_status_nonexistent_agent(self, temp_comm_file, mock_config, capsys):
         """Test show_my_status when agent doesn't exist."""
         comm = CommunicationsFile(temp_comm_file)
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             show_my_status(comm, "nonexistent_agent")
 
         captured = capsys.readouterr()
@@ -601,7 +601,7 @@ class TestCLIShowMyStatus:
 class TestCLIWatcherFunction:
     """Test run_watcher function behavior."""
 
-    def test_run_watcher_displays_updates(self, temp_comm_file, capsys):
+    def test_run_watcher_displays_updates(self, temp_comm_file, mock_config, capsys):
         """Test run_watcher detects and displays file changes."""
         comm = CommunicationsFile(temp_comm_file)
 
@@ -626,14 +626,14 @@ class TestCLIWatcherFunction:
             elif update_count > 3:
                 raise KeyboardInterrupt()
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch('time.sleep', mock_sleep):
                 run_watcher()
 
         captured = capsys.readouterr()
         assert "WATCHER" in captured.out.upper()
 
-    def test_run_watcher_update_without_requests_or_added(self, temp_comm_file, capsys):
+    def test_run_watcher_update_without_requests_or_added(self, temp_comm_file, mock_config, capsys):
         """Test watcher displays updates when agent has no requests or added."""
         comm = CommunicationsFile(temp_comm_file)
 
@@ -650,14 +650,14 @@ class TestCLIWatcherFunction:
             elif update_count > 3:
                 raise KeyboardInterrupt()
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch('time.sleep', mock_sleep):
                 run_watcher()
 
         captured = capsys.readouterr()
         assert "Just a mission" in captured.out
 
-    def test_run_watcher_update_by_unknown_agent(self, temp_comm_file, capsys):
+    def test_run_watcher_update_by_unknown_agent(self, temp_comm_file, mock_config, capsys):
         """Test watcher handles update by agent not in data."""
         comm = CommunicationsFile(temp_comm_file)
 
@@ -675,7 +675,7 @@ class TestCLIWatcherFunction:
             elif update_count > 3:
                 raise KeyboardInterrupt()
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch('time.sleep', mock_sleep):
                 run_watcher()
 
@@ -683,16 +683,16 @@ class TestCLIWatcherFunction:
         # Should show update even though agent not in data
         assert "phantom_agent" in captured.out
 
-    def test_run_watcher_handles_sigterm(self, temp_comm_file, capsys):
+    def test_run_watcher_handles_sigterm(self, temp_comm_file, mock_config, capsys):
         """Test run_watcher handles SIGTERM signal."""
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch('time.sleep', side_effect=KeyboardInterrupt):
                 run_watcher()
 
         captured = capsys.readouterr()
         assert "WATCHER" in captured.out.upper()
 
-    def test_run_watcher_handles_exception(self, temp_comm_file, capsys):
+    def test_run_watcher_handles_exception(self, temp_comm_file, mock_config, capsys):
         """Test run_watcher handles and reports exceptions."""
         call_count = 0
 
@@ -708,7 +708,7 @@ class TestCLIWatcherFunction:
 
         comm = CommunicationsFile(temp_comm_file)
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch.object(comm, 'get_file_hash', mock_get_hash):
                 with patch('agent_cli.CommunicationsFile', return_value=comm):
                     run_watcher()
@@ -721,7 +721,7 @@ class TestCLIWatcherFunction:
 class TestCLIBackgroundWatcher:
     """Test the background watcher thread in run_agent."""
 
-    def test_background_watcher_receives_updates(self, temp_comm_file):
+    def test_background_watcher_receives_updates(self, temp_comm_file, mock_config):
         """Test that background watcher thread notifies of updates."""
         comm = CommunicationsFile(temp_comm_file)
 
@@ -742,7 +742,7 @@ class TestCLIBackgroundWatcher:
                 raise EOFError()
             return "quit"
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch('builtins.input', mock_input):
                 with patch('sys.stdout', new_callable=StringIO) as mock_out:
                     run_agent("test_agent")
@@ -752,7 +752,7 @@ class TestCLIBackgroundWatcher:
         # but the session should complete without error
         assert "Goodbye" in output
 
-    def test_background_watcher_shows_request_notification(self, temp_comm_file):
+    def test_background_watcher_shows_request_notification(self, temp_comm_file, mock_config):
         """Test background watcher shows new request notifications."""
         comm = CommunicationsFile(temp_comm_file)
         # Initialize our agent first
@@ -772,7 +772,7 @@ class TestCLIBackgroundWatcher:
                 raise EOFError()
             return "quit"
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch('builtins.input', mock_input):
                 with patch('sys.stdout', new_callable=StringIO) as mock_out:
                     run_agent("test_agent")
@@ -780,7 +780,7 @@ class TestCLIBackgroundWatcher:
 
         assert "Goodbye" in output
 
-    def test_background_watcher_shows_delivery_notification(self, temp_comm_file):
+    def test_background_watcher_shows_delivery_notification(self, temp_comm_file, mock_config):
         """Test background watcher shows delivery notifications."""
         comm = CommunicationsFile(temp_comm_file)
         # Initialize our agent with a pending request
@@ -807,7 +807,7 @@ class TestCLIBackgroundWatcher:
                 raise EOFError()
             return "quit"
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch('builtins.input', mock_input):
                 with patch('sys.stdout', new_callable=StringIO) as mock_out:
                     run_agent("test_agent")
@@ -815,7 +815,7 @@ class TestCLIBackgroundWatcher:
 
         assert "Goodbye" in output
 
-    def test_background_watcher_exception_handling(self, temp_comm_file):
+    def test_background_watcher_exception_handling(self, temp_comm_file, mock_config):
         """Test background watcher handles exceptions gracefully."""
         comm = CommunicationsFile(temp_comm_file)
 
@@ -840,7 +840,7 @@ class TestCLIBackgroundWatcher:
                 raise EOFError()
             return "quit"
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch('builtins.input', mock_input):
                 with patch('sys.stdout', new_callable=StringIO) as mock_out:
                     # Patch at the module level for the watcher thread
@@ -850,7 +850,7 @@ class TestCLIBackgroundWatcher:
         # Should complete gracefully despite exception
         assert "Goodbye" in output
 
-    def test_background_watcher_ignores_self_updates(self, temp_comm_file):
+    def test_background_watcher_ignores_self_updates(self, temp_comm_file, mock_config):
         """Test background watcher ignores updates made by the agent itself."""
         comm = CommunicationsFile(temp_comm_file)
 
@@ -870,7 +870,7 @@ class TestCLIBackgroundWatcher:
                 raise EOFError()
             return "quit"
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch('builtins.input', mock_input):
                 with patch('sys.stdout', new_callable=StringIO) as mock_out:
                     run_agent("test_agent")
@@ -880,7 +880,7 @@ class TestCLIBackgroundWatcher:
         assert "Update from test_agent" not in output
         assert "Goodbye" in output
 
-    def test_background_watcher_handles_null_updated_by(self, temp_comm_file):
+    def test_background_watcher_handles_null_updated_by(self, temp_comm_file, mock_config):
         """Test background watcher handles when last_updated_by is None."""
         comm = CommunicationsFile(temp_comm_file)
 
@@ -901,7 +901,7 @@ class TestCLIBackgroundWatcher:
                 raise EOFError()
             return "quit"
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             with patch('builtins.input', mock_input):
                 with patch('sys.stdout', new_callable=StringIO) as mock_out:
                     run_agent("test_agent")
@@ -932,21 +932,21 @@ class TestCLIDeliveryEdgeCases:
         # Should show deliveries section but skip malformed entry
         assert "Deliveries" in output
 
-    def test_show_my_status_with_malformed_delivery(self, temp_comm_file, capsys):
+    def test_show_my_status_with_malformed_delivery(self, temp_comm_file, mock_config, capsys):
         """Test show_my_status with malformed delivery."""
         comm = CommunicationsFile(temp_comm_file)
         comm.update_agent("my_agent", AgentStatus(
             added=[["from", "desc"]]  # Missing original_request
         ))
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             show_my_status(comm, "my_agent")
 
         captured = capsys.readouterr()
         # Should still display but skip malformed entry
         assert "Your status" in captured.out
 
-    def test_show_status_with_malformed_delivery(self, temp_comm_file, capsys):
+    def test_show_status_with_malformed_delivery(self, temp_comm_file, mock_config, capsys):
         """Test show_status with malformed delivery in agent data."""
         comm = CommunicationsFile(temp_comm_file)
         comm.update_agent("agent1", AgentStatus(
@@ -954,7 +954,7 @@ class TestCLIDeliveryEdgeCases:
             added=[["from", "only_two_elements"]]  # Malformed
         ))
 
-        with patch('agent_cli.COMM_FILE', temp_comm_file):
+        with mock_config:
             show_status()
 
         captured = capsys.readouterr()

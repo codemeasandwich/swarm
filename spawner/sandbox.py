@@ -1,10 +1,12 @@
 """Sandbox setup and management for agent workspaces."""
 
+from __future__ import annotations
+
+import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-import logging
 
 logger = logging.getLogger(__name__)
 

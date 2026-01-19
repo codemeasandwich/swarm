@@ -1,13 +1,15 @@
 """Local CI provider for testing without external CI systems."""
 
+from __future__ import annotations
+
 import asyncio
+import logging
 import subprocess
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Callable, Awaitable, Dict, Any, List
-import logging
+from typing import Optional, Callable, Awaitable, Any
 
 from .interface import (
     CIProvider,

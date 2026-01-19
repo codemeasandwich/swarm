@@ -1,9 +1,11 @@
 """Data models for project plans - Epics, Stories, Tasks, Milestones."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Dict, Any
+from typing import Optional
 
 
 class TaskStatus(Enum):

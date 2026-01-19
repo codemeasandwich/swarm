@@ -1,14 +1,19 @@
 """Context snapshot and restoration for agent respawns."""
 
+from __future__ import annotations
+
 import json
+import logging
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Tuple
 
 from plan.models import Task, TaskStatus
 from personas.models import AgentInstance, Breakpoint
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -184,7 +189,8 @@ class ContextBuilder:
                 check=True,
             )
             return [line.strip() for line in result.stdout.splitlines() if line.strip()]
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as e:
+            logger.debug("Failed to get recent commits for branch %s: %s", branch, e)
             return []
 
     def _get_uncommitted_files(self) -> List[str]:
@@ -202,7 +208,8 @@ class ContextBuilder:
                 if line.strip():
                     files.append(line[3:].strip())
             return files
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as e:
+            logger.debug("Failed to get uncommitted files: %s", e)
             return []
 
     def _get_communications(
@@ -239,7 +246,8 @@ class ContextBuilder:
 
             return pending_requests, recent_deliveries
 
-        except (json.JSONDecodeError, FileNotFoundError):
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.debug("Failed to get communications for agent %s: %s", agent_id, e)
             return [], []
 
     def build_context_summary(self, snapshot: ContextSnapshot) -> str:

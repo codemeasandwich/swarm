@@ -1,12 +1,14 @@
 """CI event types and event emitter."""
 
+from __future__ import annotations
+
+import asyncio
+import logging
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Callable, Awaitable, List, Optional, Dict, Any
-import asyncio
-import uuid
-import logging
+from typing import Callable, Awaitable, Optional, Any
 
 from .interface import CIEvent
 

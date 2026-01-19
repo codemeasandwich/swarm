@@ -1,9 +1,11 @@
 """Markdown parser for project plans."""
 
+from __future__ import annotations
+
 import re
-from pathlib import Path
-from typing import List, Optional, Tuple
 from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
 from .models import (
     AcceptanceCriterion,

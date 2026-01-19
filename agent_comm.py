@@ -14,18 +14,22 @@ Each agent has:
 File watcher notifies other agents when updates occur.
 """
 
-import json
-import os
-import time
+from __future__ import annotations
+
 import hashlib
+import json
+import logging
 import threading
-from pathlib import Path
-from datetime import datetime
-from typing import Callable, Optional, Dict, Any, List, Tuple
-from dataclasses import dataclass, field, asdict
+import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field, asdict
+from datetime import datetime
+from pathlib import Path
+from typing import Callable, Optional, Any
 
 from personas.models import Breakpoint
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -127,6 +131,12 @@ class EnhancedAgentStatus(AgentStatus):
             breakpoint=Breakpoint.from_dict(breakpoint_data) if breakpoint_data else None,
         )
 
+    # Note: These status check methods parallel AgentInstance.is_blocked/is_active/is_complete
+    # in personas/models.py. The duplication is intentional:
+    # - EnhancedAgentStatus uses string literals (for JSON serialization in communications.json)
+    # - AgentInstance uses LifecycleState enum (for type-safe runtime operations)
+    # Both need these convenience methods for their respective use cases.
+
     def is_blocked(self) -> bool:
         """Check if agent is in blocked state."""
         return self.lifecycle_state == "blocked"
@@ -207,8 +217,17 @@ class CommunicationsFile:
         """Update metadata."""
         data["_meta"]["last_updated"] = datetime.now().isoformat()
         data["_meta"]["last_updated_by"] = agent_name
-    
-    def get_all_agents(self) -> Dict[str, AgentStatus]:
+
+    def read_raw(self) -> dict:
+        """Read and return the raw JSON data.
+
+        This is the public interface for reading the communications file.
+        Use this instead of _read_data() for external access.
+        """
+        with self._lock:
+            return self._read_data()
+
+    def get_all_agents(self) -> dict[str, AgentStatus]:
         """Get status of all agents."""
         with self._lock:
             data = self._read_data()
@@ -261,7 +280,18 @@ class CommunicationsFile:
     def add_request(self, from_agent: str, to_agent: str, request: str) -> dict:
         """
         Add a request from one agent to another.
-        Adds [to_agent, request] to from_agent's requests array.
+
+        Adds [to_agent, request] to from_agent's requests array in the
+        communications file. The target agent can retrieve pending requests
+        using get_requests_for_agent().
+
+        Args:
+            from_agent: The agent making the request.
+            to_agent: The agent who should fulfill the request.
+            request: Description of what is being requested.
+
+        Returns:
+            The updated communications data dict.
         """
         with self._lock:
             data = self._read_data()

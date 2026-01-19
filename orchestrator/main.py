@@ -1,13 +1,15 @@
 """Main orchestrator - coordinates all agents and manages the project lifecycle."""
 
+from __future__ import annotations
+
 import asyncio
 import json
+import logging
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, List, Any
-import logging
+from typing import Optional, Any
 
 
 class OrchestratorError(Exception):

@@ -1,9 +1,11 @@
 """Persona configuration and agent instance models."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Dict, Any
+from typing import Optional
 
 from plan.models import Persona, Task
 

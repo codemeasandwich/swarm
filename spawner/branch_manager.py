@@ -1,10 +1,12 @@
 """Git branch management for agent isolation."""
 
+from __future__ import annotations
+
+import logging
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List
-import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 

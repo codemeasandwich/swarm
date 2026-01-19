@@ -1,8 +1,9 @@
 """Generate .claude.md files for agent personas."""
 
-from pathlib import Path
-from typing import Optional
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Optional
 
 from plan.models import ProjectPlan, Task, Persona
 from .models import PersonaConfig, AgentInstance
