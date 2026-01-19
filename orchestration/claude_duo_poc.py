@@ -10,6 +10,9 @@ Agent Roles:
   - CODER: Implements code based on Researcher's requests
 
 Run: python3 claude_duo_poc.py
+
+NOTE: This is a proof-of-concept for demonstration purposes.
+For production use, see the orchestrator module.
 """
 
 import os
@@ -17,15 +20,42 @@ import subprocess
 import json
 import time
 import sys
+import atexit
 from pathlib import Path
 from datetime import datetime
+from typing import Optional, List
 
 
+# Configuration
 WORKING_DIR = Path(__file__).parent.parent.absolute()
 COMM_FILE = WORKING_DIR / "communications.json"
+DEFAULT_TIMEOUT = 120  # seconds
+SYNC_DELAY = 2.0  # seconds to wait for file sync
+
+# Track running processes for cleanup
+_running_processes: List[subprocess.Popen] = []
 
 
-def reset_communications():
+def _cleanup_processes():
+    """Clean up any running processes on exit."""
+    for proc in _running_processes:
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+
+
+atexit.register(_cleanup_processes)
+
+
+class POCError(Exception):
+    """Base exception for POC errors."""
+    pass
+
+
+def reset_communications() -> None:
     """Reset the communications file to initial state."""
     initial = {
         "_meta": {
@@ -34,15 +64,23 @@ def reset_communications():
             "last_updated_by": "system"
         }
     }
-    with open(COMM_FILE, 'w') as f:
-        json.dump(initial, f, indent=2)
-    print(f"[System] Reset {COMM_FILE}")
+    try:
+        with open(COMM_FILE, 'w') as f:
+            json.dump(initial, f, indent=2)
+        print(f"[System] Reset {COMM_FILE}")
+    except IOError as e:
+        raise POCError(f"Failed to reset communications file: {e}") from e
 
 
-def read_communications():
+def read_communications() -> dict:
     """Read current state of communications."""
-    with open(COMM_FILE, 'r') as f:
-        return json.load(f)
+    try:
+        with open(COMM_FILE, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"_meta": {"error": "Communications file not found"}}
+    except json.JSONDecodeError as e:
+        return {"_meta": {"error": f"Invalid JSON: {e}"}}
 
 
 def print_state(label: str):
@@ -94,36 +132,66 @@ START by reading the current state, then begin your task.
 """
 
 
-def run_claude_agent(agent_name: str, task: str) -> subprocess.Popen:
-    """Launch a Claude Code CLI process for an agent."""
+def run_claude_agent(agent_name: str, task: str, skip_permissions: bool = False) -> subprocess.Popen:
+    """
+    Launch a Claude Code CLI process for an agent.
+
+    Args:
+        agent_name: Name of the agent
+        task: Task instructions for the agent
+        skip_permissions: If True, skip permission prompts (use with caution)
+
+    Returns:
+        subprocess.Popen instance
+
+    Raises:
+        POCError: If the claude command is not found
+    """
     prompt = create_agent_prompt(agent_name, task)
 
-    # Launch claude with the prompt
-    cmd = ['claude', '--print', '--dangerously-skip-permissions', '-p', prompt]
+    # Build command - note: --dangerously-skip-permissions should be used with caution
+    cmd = ['claude', '--print', '-p', prompt]
+    if skip_permissions:
+        cmd.insert(2, '--dangerously-skip-permissions')
 
     print(f"\n[System] Launching {agent_name}...")
     print(f"[System] Task: {task[:80]}...")
 
-    proc = subprocess.Popen(
-        cmd,
-        cwd=str(WORKING_DIR),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True
-    )
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=str(WORKING_DIR),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        _running_processes.append(proc)
+        return proc
+    except FileNotFoundError:
+        raise POCError("'claude' command not found. Is Claude Code CLI installed?")
 
-    return proc
 
+def wait_and_stream(proc: subprocess.Popen, agent_name: str, timeout: int = DEFAULT_TIMEOUT) -> str:
+    """
+    Wait for process and stream output.
 
-def wait_and_stream(proc: subprocess.Popen, agent_name: str, timeout: int = 120):
-    """Wait for process and stream output."""
+    Args:
+        proc: The subprocess to wait for
+        agent_name: Name of the agent (for logging)
+        timeout: Maximum time to wait in seconds
+
+    Returns:
+        Combined output from the process
+    """
     start = time.time()
     output_lines = []
+    timed_out = False
 
     while proc.poll() is None:
         if time.time() - start > timeout:
             print(f"[{agent_name}] Timeout after {timeout}s")
             proc.terminate()
+            timed_out = True
             break
 
         line = proc.stdout.readline()
@@ -134,10 +202,18 @@ def wait_and_stream(proc: subprocess.Popen, agent_name: str, timeout: int = 120)
             if stripped and not stripped.startswith('{') and len(stripped) < 200:
                 print(f"[{agent_name}] {stripped}")
 
-    # Get remaining output
-    remaining, _ = proc.communicate(timeout=5)
-    if remaining:
-        output_lines.append(remaining)
+    # Get remaining output with timeout protection
+    try:
+        remaining, _ = proc.communicate(timeout=10)
+        if remaining:
+            output_lines.append(remaining)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.communicate()  # Clean up
+
+    # Remove from tracking list
+    if proc in _running_processes:
+        _running_processes.remove(proc)
 
     return ''.join(output_lines)
 
@@ -190,29 +266,42 @@ After updating, output "CODER COMPLETE" and stop.
     print("[Phase 1] Starting RESEARCHER agent")
     print("-"*65)
 
-    researcher_proc = run_claude_agent("researcher", researcher_task)
-    researcher_output = wait_and_stream(researcher_proc, "researcher", timeout=60)
+    try:
+        researcher_proc = run_claude_agent("researcher", researcher_task, skip_permissions=True)
+        researcher_output = wait_and_stream(researcher_proc, "researcher", timeout=60)
+    except POCError as e:
+        print(f"[ERROR] {e}")
+        return
 
     print_state("After RESEARCHER")
 
-    # Small delay to ensure file is written
-    time.sleep(1)
+    # Delay to ensure file is written and synced
+    print(f"[System] Waiting {SYNC_DELAY}s for file sync...")
+    time.sleep(SYNC_DELAY)
 
     # Run coder second (sees researcher's request)
     print("\n" + "-"*65)
     print("[Phase 2] Starting CODER agent")
     print("-"*65)
 
-    coder_proc = run_claude_agent("coder", coder_task)
-    coder_output = wait_and_stream(coder_proc, "coder", timeout=60)
+    try:
+        coder_proc = run_claude_agent("coder", coder_task, skip_permissions=True)
+        coder_output = wait_and_stream(coder_proc, "coder", timeout=60)
+    except POCError as e:
+        print(f"[ERROR] {e}")
+        return
 
     print_state("After CODER")
 
     # Save final state
     final_state = read_communications()
     final_path = WORKING_DIR / "running" / "tracker.json"
-    with open(final_path, 'w') as f:
-        json.dump(final_state, f, indent=2)
+    final_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(final_path, 'w') as f:
+            json.dump(final_state, f, indent=2)
+    except IOError as e:
+        print(f"[WARNING] Could not save final state: {e}")
 
     print("\n" + "="*65)
     print("  POC COMPLETE")

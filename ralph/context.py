@@ -5,7 +5,7 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 from plan.models import Task, TaskStatus
 from personas.models import AgentInstance, Breakpoint
@@ -209,7 +209,7 @@ class ContextBuilder:
         self,
         agent_id: str,
         comm_file_path: Path
-    ) -> tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+    ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
         """Get pending requests and recent deliveries for an agent."""
         try:
             data = json.loads(comm_file_path.read_text())

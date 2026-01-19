@@ -401,17 +401,32 @@ Start by reading .claude.md and the current state of communications.json.
             return self._are_blockers_resolved(blocked_on)
         return False
 
+    def _extract_pr_number(self, pr_url: str) -> Optional[int]:
+        """Extract PR number from a GitHub PR URL."""
+        import re
+        # Match patterns like:
+        # https://github.com/owner/repo/pull/123
+        # https://github.com/owner/repo/pull/123/files
+        match = re.search(r'/pull/(\d+)', pr_url)
+        if match:
+            return int(match.group(1))
+        return None
+
     async def _wait_for_pr_merge(self, pr_url: str) -> bool:
         """Wait for a PR to be merged."""
-        # Extract PR number from URL (simplified)
-        # In practice, you'd parse the URL properly
+        pr_number = self._extract_pr_number(pr_url)
+        if pr_number is None:
+            logger.error(f"Could not extract PR number from URL: {pr_url}")
+            return False
+
         try:
             pr_info = await self.ci_provider.wait_for_pr_merge(
-                pr_number=1,  # Would need to extract from URL
+                pr_number=pr_number,
                 timeout=600,
             )
             return pr_info.is_merged()
-        except (TimeoutError, RuntimeError):
+        except (TimeoutError, RuntimeError) as e:
+            logger.error(f"Error waiting for PR merge: {e}")
             return False
 
     def _get_next_task(self, agent: AgentInstance) -> Optional[Task]:

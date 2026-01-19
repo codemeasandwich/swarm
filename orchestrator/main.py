@@ -2,11 +2,32 @@
 
 import asyncio
 import json
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 import logging
+
+
+class OrchestratorError(Exception):
+    """Base exception for orchestrator errors."""
+    pass
+
+
+class PlanParseError(OrchestratorError):
+    """Raised when plan parsing fails."""
+    pass
+
+
+class PlanValidationError(OrchestratorError):
+    """Raised when plan validation fails."""
+    pass
+
+
+class AgentSpawnError(OrchestratorError):
+    """Raised when agent spawning fails."""
+    pass
 
 from plan.models import ProjectPlan, Task, TaskStatus
 from plan.parser import PlanParser
@@ -85,6 +106,7 @@ class Orchestrator:
         self.agents: Dict[str, AgentInstance] = {}
         self._agent_loops: Dict[str, asyncio.Task] = {}
         self._running = False
+        self._task_lock = threading.Lock()  # Lock for task claiming to prevent race conditions
 
     async def start(self, plan_dir: Optional[Path] = None) -> bool:
         """
@@ -102,18 +124,23 @@ class Orchestrator:
         parser = PlanParser()
         try:
             self.plan = parser.parse_plan(plan_dir)
+        except FileNotFoundError as e:
+            logger.error(f"Plan directory not found: {plan_dir}")
+            raise PlanParseError(f"Plan directory not found: {plan_dir}") from e
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in plan files: {e}")
+            raise PlanParseError(f"Invalid JSON in plan files: {e}") from e
         except Exception as e:
             logger.error(f"Failed to parse plan: {e}")
-            return False
+            raise PlanParseError(f"Failed to parse plan: {e}") from e
 
         # Validate the plan
         validator = PlanValidator()
         result = validator.validate(self.plan)
         if not result.is_valid:
-            logger.error("Plan validation failed:")
-            for error in result.errors:
-                logger.error(f"  {error}")
-            return False
+            error_msg = "Plan validation failed: " + "; ".join(result.errors)
+            logger.error(error_msg)
+            raise PlanValidationError(error_msg)
 
         for warning in result.warnings:
             logger.warning(f"Plan warning: {warning}")
@@ -156,7 +183,7 @@ class Orchestrator:
             if available_tasks:
                 await self.spawn_agent(persona.role, available_tasks[0])
 
-    async def spawn_agent(self, role: str, task: Task) -> Optional[AgentInstance]:
+    async def spawn_agent(self, role: str, task: Task) -> AgentInstance:
         """
         Spawn a new agent for a role and task.
 
@@ -166,20 +193,25 @@ class Orchestrator:
 
         Returns:
             AgentInstance if successful
+
+        Raises:
+            AgentSpawnError: If agent spawning fails
         """
         if not self.plan:
-            logger.error("No plan loaded")
-            return None
+            raise AgentSpawnError("No plan loaded")
 
         # Get persona for role
         persona = self.plan.get_persona_by_role(role)
         if not persona:
-            logger.error(f"No persona found for role: {role}")
-            return None
+            raise AgentSpawnError(f"No persona found for role: {role}")
 
         # Create agent instance
         agent_id = f"{role}-{task.id}"
-        branch_name = self.branch_manager.create_agent_branch(agent_id, task.id)
+
+        try:
+            branch_name = self.branch_manager.create_agent_branch(agent_id, task.id)
+        except Exception as e:
+            raise AgentSpawnError(f"Failed to create branch for agent {agent_id}: {e}") from e
 
         agent = AgentInstance(
             agent_id=agent_id,
@@ -192,11 +224,17 @@ class Orchestrator:
         )
 
         # Setup sandbox
-        self.sandbox_manager.create_sandbox(agent_id)
+        try:
+            self.sandbox_manager.create_sandbox(agent_id)
+        except Exception as e:
+            raise AgentSpawnError(f"Failed to create sandbox for agent {agent_id}: {e}") from e
 
-        # Claim the task
+        # Claim the task with lock to prevent race conditions
         if self.persona_matcher:
-            self.persona_matcher.claim_task(task, agent_id)
+            with self._task_lock:
+                if task.status != TaskStatus.NOT_STARTED:
+                    raise AgentSpawnError(f"Task {task.id} is no longer available (status: {task.status})")
+                self.persona_matcher.claim_task(task, agent_id)
 
         # Register agent
         self.agents[agent_id] = agent
@@ -262,9 +300,16 @@ class Orchestrator:
             # Check if milestone is complete
             await self._check_milestone_completion()
 
+        except asyncio.CancelledError:
+            logger.info(f"Agent loop for {agent.agent_id} was cancelled")
+            raise
         except Exception as e:
             logger.exception(f"Error in agent loop for {agent.agent_id}: {e}")
             agent.lifecycle_state = LifecycleState.FAILED
+        finally:
+            # Clean up the loop reference to prevent memory leaks
+            if agent.agent_id in self._agent_loops:
+                del self._agent_loops[agent.agent_id]
 
     async def _check_milestone_completion(self):
         """Check if any milestones are complete and create PRs."""
@@ -402,6 +447,10 @@ async def run_orchestration(plan_dir: str, repo_dir: Optional[str] = None) -> Di
 
     Returns:
         Final status dict
+
+    Raises:
+        PlanParseError: If plan parsing fails
+        PlanValidationError: If plan validation fails
     """
     repo_dir = Path(repo_dir) if repo_dir else Path.cwd()
     plan_dir = Path(plan_dir)
@@ -414,9 +463,7 @@ async def run_orchestration(plan_dir: str, repo_dir: Optional[str] = None) -> Di
     orchestrator = Orchestrator(config)
 
     try:
-        if not await orchestrator.start():
-            return {"error": "Failed to start orchestrator"}
-
+        await orchestrator.start()
         await orchestrator.wait_for_completion()
         return orchestrator.status()
 

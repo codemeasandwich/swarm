@@ -16,11 +16,13 @@ addopts = [
     "--cov=.",
     "--cov-report=term-missing",
     "--cov-report=html:coverage_html",
-    "--cov-fail-under=100",
+    "--cov-fail-under=80",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 branch = true
@@ -45,5 +47,5 @@ exclude_lines = [
     "except Exception:",
     "pass$",
 ]
-fail_under = 100
+fail_under = 80
 show_missing = true

@@ -17,6 +17,17 @@ class LifecycleState(Enum):
     COMPLETE = "complete"
     FAILED = "failed"
 
+    @classmethod
+    def from_string(cls, value: str) -> "LifecycleState":
+        """Convert string to LifecycleState, with fallback to IDLE."""
+        try:
+            return cls(value.lower())
+        except ValueError:
+            return cls.IDLE
+
+    def __str__(self) -> str:
+        return self.value
+
 
 @dataclass
 class Breakpoint:

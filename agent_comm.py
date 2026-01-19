@@ -25,6 +25,8 @@ from typing import Callable, Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field, asdict
 from abc import ABC, abstractmethod
 
+from personas.models import Breakpoint
+
 
 @dataclass
 class AgentStatus:
@@ -55,33 +57,8 @@ class AgentStatus:
         )
 
 
-@dataclass
-class BreakpointInfo:
-    """Information about an agent's breakpoint (natural stopping point)."""
-    type: str = ""  # "task_complete", "blocked", "pr_created"
-    task_id: str = ""
-    summary: str = ""
-    blocked_on: List[str] = field(default_factory=list)
-    reason: str = ""
-    pr_url: str = ""
-    timestamp: str = ""
-
-    def to_dict(self) -> dict:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data: dict) -> 'BreakpointInfo':
-        if not data:
-            return cls()
-        return cls(
-            type=data.get('type', ''),
-            task_id=data.get('task_id', ''),
-            summary=data.get('summary', ''),
-            blocked_on=data.get('blocked_on', []),
-            reason=data.get('reason', ''),
-            pr_url=data.get('pr_url', ''),
-            timestamp=data.get('timestamp', '')
-        )
+# BreakpointInfo is an alias for Breakpoint from personas.models for backwards compatibility
+BreakpointInfo = Breakpoint
 
 
 @dataclass
@@ -109,7 +86,7 @@ class EnhancedAgentStatus(AgentStatus):
     pr_url: str = ""
 
     # Breakpoint info for context reset
-    breakpoint: Optional[BreakpointInfo] = None
+    breakpoint: Optional[Breakpoint] = None
 
     def to_dict(self) -> dict:
         d = super().to_dict()
@@ -147,7 +124,7 @@ class EnhancedAgentStatus(AgentStatus):
             retry_count=data.get('retry_count', 0),
             spawn_count=data.get('spawn_count', 1),
             pr_url=data.get('pr_url', ''),
-            breakpoint=BreakpointInfo.from_dict(breakpoint_data) if breakpoint_data else None,
+            breakpoint=Breakpoint.from_dict(breakpoint_data) if breakpoint_data else None,
         )
 
     def is_blocked(self) -> bool:
@@ -166,20 +143,20 @@ class EnhancedAgentStatus(AgentStatus):
         """Set agent to blocked state with breakpoint."""
         self.lifecycle_state = "blocked"
         self.blocked_on = blocked_on
-        self.breakpoint = BreakpointInfo(
+        self.breakpoint = Breakpoint(
             type="blocked",
             blocked_on=blocked_on,
             reason=reason,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(),
         )
 
     def set_task_complete(self, task_id: str, summary: str = ""):
         """Signal task completion with breakpoint."""
-        self.breakpoint = BreakpointInfo(
+        self.breakpoint = Breakpoint(
             type="task_complete",
             task_id=task_id,
             summary=summary,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(),
         )
         self.lifecycle_state = "idle"
         self.current_task_id = ""
@@ -188,11 +165,11 @@ class EnhancedAgentStatus(AgentStatus):
         """Set agent to PR pending state with breakpoint."""
         self.lifecycle_state = "pr_pending"
         self.pr_url = pr_url
-        self.breakpoint = BreakpointInfo(
+        self.breakpoint = Breakpoint(
             type="pr_created",
             task_id=task_id,
             pr_url=pr_url,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(),
         )
 
 
