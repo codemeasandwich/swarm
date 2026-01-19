@@ -1,0 +1,49 @@
+[project]
+name = "agent-system"
+version = "1.0.0"
+description = "Multi-agent communication system"
+requires-python = ">=3.9"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+    "--cov=.",
+    "--cov-report=term-missing",
+    "--cov-report=html:coverage_html",
+    "--cov-fail-under=100",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = [
+    "tests/*",
+    "sandbox/*",
+    "orchestration/*",
+    ".hooks/*",
+    "agent_system/*",
+    "running/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "@abstractmethod",
+    "def handle_signal",
+    "sys.exit\\(0\\)",
+    "except Exception:",
+    "pass$",
+]
+fail_under = 100
+show_missing = true
