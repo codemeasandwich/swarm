@@ -15,8 +15,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agent_cli import run_agent, run_watcher, show_status, show_my_status, main
-from agent_comm import CommunicationsFile, AgentStatus
+from cli.main import run_agent, run_watcher, show_status, show_my_status, main
+from communication.core import CommunicationsFile, AgentStatus
 from tests.conftest import CLISimulator
 
 
@@ -710,7 +710,7 @@ class TestCLIWatcherFunction:
 
         with mock_config:
             with patch.object(comm, 'get_file_hash', mock_get_hash):
-                with patch('agent_cli.CommunicationsFile', return_value=comm):
+                with patch('cli.main.CommunicationsFile', return_value=comm):
                     run_watcher()
 
         captured = capsys.readouterr()

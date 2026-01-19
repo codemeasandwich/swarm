@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agent_comm import (
+from communication.core import (
     AgentStatus, CommunicationsFile, FileWatcher,
     Agent, Coordinator, TaskAgent
 )

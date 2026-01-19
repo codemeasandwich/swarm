@@ -37,14 +37,14 @@ from plan.validator import PlanValidator
 from personas.models import PersonaConfig, AgentInstance, LifecycleState
 from personas.matcher import PersonaMatcher
 from personas.generator import ClaudeMdGenerator
-from spawner.terminal import TerminalManager
-from spawner.branch_manager import BranchManager
-from spawner.sandbox import SandboxManager
+from runtime.process import TerminalManager
+from runtime.branches import BranchManager
+from runtime.workspace import WorkspaceManager
 from ci.interface import CIProvider, CIEvent
 from ci.local import LocalCIProvider
 from ci.events import CIEventEmitter, CIEventType
-from ralph.loop import RalphWiggumLoop, LoopResult, LoopResultType
-from agent_comm import CommunicationsFile, EnhancedAgentStatus
+from lifecycle.loop import AgentLifecycleLoop, LoopResult, LoopResultType
+from communication.core import CommunicationsFile, EnhancedAgentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class Orchestrator:
         self.comm_file = CommunicationsFile(str(config.repo_dir / "communications.json"))
         self.terminal_manager = TerminalManager(config.repo_dir)
         self.branch_manager = BranchManager(config.repo_dir, config.integration_branch)
-        self.sandbox_manager = SandboxManager(config.sandbox_dir)
+        self.workspace_manager = WorkspaceManager(config.sandbox_dir)
 
         # CI provider (default to local)
         self.event_emitter = CIEventEmitter()
@@ -225,11 +225,11 @@ class Orchestrator:
             started_at=datetime.now(),
         )
 
-        # Setup sandbox
+        # Setup workspace
         try:
-            self.sandbox_manager.create_sandbox(agent_id)
+            self.workspace_manager.create_sandbox(agent_id)
         except Exception as e:
-            raise AgentSpawnError(f"Failed to create sandbox for agent {agent_id}: {e}") from e
+            raise AgentSpawnError(f"Failed to create workspace for agent {agent_id}: {e}") from e
 
         # Claim the task with lock to prevent race conditions
         if self.persona_matcher:
@@ -255,14 +255,14 @@ class Orchestrator:
 
         logger.info(f"Spawned agent {agent_id} for task {task.id}")
 
-        # Start Ralph Wiggum loop
-        loop = RalphWiggumLoop(
+        # Start lifecycle loop
+        loop = AgentLifecycleLoop(
             repo_dir=self.config.repo_dir,
             plan=self.plan,
             ci_provider=self.ci_provider,
             terminal_manager=self.terminal_manager,
             branch_manager=self.branch_manager,
-            sandbox_manager=self.sandbox_manager,
+            workspace_manager=self.workspace_manager,
             comm_file_path=self.config.repo_dir / "communications.json",
             max_retries=self.config.max_retries,
             retry_interval=self.config.retry_interval,
@@ -280,9 +280,9 @@ class Orchestrator:
         self,
         agent: AgentInstance,
         task: Task,
-        loop: RalphWiggumLoop,
+        loop: AgentLifecycleLoop,
     ):
-        """Run the Ralph Wiggum loop for an agent."""
+        """Run the lifecycle loop for an agent."""
         try:
             result = await loop.run_agent_loop(agent, task)
 

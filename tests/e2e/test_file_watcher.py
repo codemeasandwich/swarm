@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agent_comm import CommunicationsFile, FileWatcher, AgentStatus
+from communication.core import CommunicationsFile, FileWatcher, AgentStatus
 from tests.conftest import NotificationCollector
 
 

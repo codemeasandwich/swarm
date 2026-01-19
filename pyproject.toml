@@ -29,9 +29,10 @@ branch = true
 source = ["."]
 omit = [
     "tests/*",
-    "sandbox/*",
+    "examples/*",
     ".hooks/*",
-    "running/*",
+    ".state/*",
+    "docs/*",
 ]
 
 [tool.coverage.report]

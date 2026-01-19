@@ -13,7 +13,7 @@ from unittest.mock import patch
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agent_comm import (
+from communication.core import (
     AgentStatus, CommunicationsFile, FileWatcher, Agent,
     Coordinator, TaskAgent
 )
@@ -123,7 +123,7 @@ class CLISimulator:
 
     def run_agent_session(self, agent_name):
         """Run an agent session with mocked input."""
-        from agent_cli import run_agent
+        from cli.main import run_agent
         from config import AgentConfig, reset_config
         import config
 
