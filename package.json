@@ -1,0 +1,37 @@
+{
+  "name": "orchestration",
+  "version": "1.0.0",
+  "description": "Multi-agent orchestration framework for coordinating AI agents on software engineering projects",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "orchestrate": "./bin/orchestrate.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "cli": "node bin/orchestrate.js",
+    "test": "node --test tests/**/*.test.js",
+    "test:coverage": "c8 node --test tests/**/*.test.js",
+    "lint": "eslint src/"
+  },
+  "keywords": [
+    "multi-agent",
+    "orchestration",
+    "ai",
+    "claude",
+    "coordination"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "c8": "^9.1.0",
+    "eslint": "^8.57.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

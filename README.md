@@ -1,6 +1,6 @@
 # Multi-Agent Orchestration Framework
 
-> A Python framework for coordinating multiple AI agents to collaborate on software engineering projects.
+> A Node.js framework for coordinating multiple AI agents to collaborate on software engineering projects.
 
 ## Overview
 
@@ -44,34 +44,42 @@ This framework enables autonomous multi-agent coordination where independent Cla
 
 ### Prerequisites
 
-- Python 3.9+
+- Node.js 18+
 - Git
 
 ### Installation
 
 ```bash
 cd orchestration
-pip install -e .
+npm install
 ```
 
-### Run the Blocking Demo
+### Run the Demos
 
 ```bash
-python3 -m examples.demos.blocking_demo
-```
+# Duo demo - two agents working together
+node examples/duo-demo.js
 
-This demonstrates two agents coordinating work with dependency blocking.
+# Blocking demo - demonstrates dependency blocking
+node examples/blocking-demo.js
+```
 
 ### Interactive CLI
 
 **Terminal 1 - Start the file watcher:**
 ```bash
-python3 -m cli.main watcher
+npm run cli -- watcher
 ```
 
 **Terminal 2 - Start an agent:**
 ```bash
-python3 -m cli.main agent researcher
+npm run cli -- agent researcher
+```
+
+Or use the CLI directly:
+```bash
+./bin/orchestrate.js watcher
+./bin/orchestrate.js agent researcher
 ```
 
 ## Core Concepts
@@ -103,14 +111,14 @@ Tasks can depend on other tasks. Agents automatically block when dependencies ar
 
 | Module | Description |
 |--------|-------------|
-| [/orchestrator](./orchestrator/) | Main coordination engine - entry point |
-| [/plan](./plan/) | Project plan models, parsing, validation |
-| [/personas](./personas/) | Agent definitions, task matching, context generation |
-| [/lifecycle](./lifecycle/) | Agent lifecycle loop (Ralph Wiggum pattern) |
-| [/runtime](./runtime/) | Process, git branch, and workspace management |
-| [/communication](./communication/) | Agent coordination via shared file |
-| [/ci](./ci/) | CI/CD provider interface and events |
-| [/cli](./cli/) | Interactive command-line interface |
+| [/src/orchestrator](./src/orchestrator/) | Main coordination engine - entry point |
+| [/src/plan](./src/plan/) | Project plan models, parsing, validation |
+| [/src/personas](./src/personas/) | Agent definitions, task matching, context generation |
+| [/src/lifecycle](./src/lifecycle/) | Agent lifecycle loop (Ralph Wiggum pattern) |
+| [/src/runtime](./src/runtime/) | Process, git branch, and workspace management |
+| [/src/communication](./src/communication/) | Agent coordination via shared file |
+| [/src/ci](./src/ci/) | CI/CD provider interface and events |
+| [/src/cli](./src/cli/) | Interactive command-line interface |
 
 ### Supporting
 
@@ -125,42 +133,59 @@ Tasks can depend on other tasks. Agents automatically block when dependencies ar
 
 | File | Description |
 |------|-------------|
-| [`config.py`](./config.py) | Centralized configuration with env vars |
-| [`pyproject.toml`](./pyproject.toml) | Project metadata and pytest config |
+| [`src/config/index.js`](./src/config/index.js) | Centralized configuration with env vars |
+| [`package.json`](./package.json) | Project metadata and scripts |
+| [`jsconfig.json`](./jsconfig.json) | JSDoc type checking configuration |
 
 ## Usage Example
 
-```python
-from orchestrator.main import Orchestrator, OrchestratorConfig
-from pathlib import Path
+```javascript
+import { Orchestrator, OrchestratorConfig } from './src/orchestrator/orchestrator.js';
 
-config = OrchestratorConfig(
-    repo_dir=Path("."),
-    plan_dir=Path(".state/plans"),
-    auto_spawn=True,
-)
+const config = new OrchestratorConfig({
+  repoDir: '.',
+  planDir: '.state/plans',
+  autoSpawn: true,
+});
 
-orchestrator = Orchestrator(config)
+const orchestrator = new Orchestrator(config);
 
-async def main():
-    await orchestrator.start()
-    await orchestrator.wait_for_completion()
-    print(orchestrator.status())
-    await orchestrator.stop()
+async function main() {
+  await orchestrator.start();
+  await orchestrator.waitForCompletion();
+  console.log(orchestrator.getStatus());
+  await orchestrator.stop();
+}
+
+main().catch(console.error);
 ```
 
 ## Testing
 
 ```bash
-# Run all tests with coverage
-pytest
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
 
 # Run only e2e tests
-pytest tests/e2e/
-
-# View coverage report
-open coverage_html/index.html
+node --test tests/e2e/
 ```
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ORCH_REPO_DIR` | `.` | Repository directory |
+| `ORCH_PLAN_DIR` | `.state/plans` | Plan files directory |
+| `ORCH_COMM_FILE` | `communications.json` | Communications file path |
+| `ORCH_WORKSPACE_DIR` | `.state/workspaces` | Agent workspace directory |
+| `ORCH_POLL_INTERVAL` | `1000` | File polling interval (ms) |
+| `ORCH_CONTEXT_MAX_LENGTH` | `50000` | Max context length |
+| `ORCH_AUTO_SPAWN` | `false` | Auto-spawn agents |
+| `ORCH_MAX_RETRIES` | `3` | Max retry attempts |
+| `ORCH_INTEGRATION_BRANCH` | `integration` | Integration branch name |
 
 ## License
 
