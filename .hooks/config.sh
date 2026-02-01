@@ -5,7 +5,7 @@
 # === Language Mode ===
 # Options: "python", "jsts", "generic"
 # This affects which file extensions are checked by default
-HOOK_LANGUAGE="generic"
+HOOK_LANGUAGE="jsts"
 
 # === Exclusions ===
 # Directories to exclude from all checks (pipe-separated regex pattern)
@@ -16,7 +16,7 @@ EXCLUDED_DIRS="node_modules|coverage|.next|.git|.hooks|.github|__pycache__|.venv
 # Python:  "\.py$"
 # JS/TS:   "\.(js|ts|jsx|tsx)$"
 # Generic: "\.(js|ts|jsx|tsx|py)$"
-SOURCE_FILE_PATTERN="\.(js|ts|jsx|tsx|py)$"
+SOURCE_FILE_PATTERN="\.(js|ts|jsx|tsx)$"
 
 # === Line Count Limits ===
 # Maximum lines per source file (excluding comments)

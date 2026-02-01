@@ -5,7 +5,6 @@
 
 import { readFile } from 'node:fs/promises';
 import { LoopResultType } from '../types/index.js';
-import { LifecycleState } from '../types/index.js';
 import { getConfig } from '../config/index.js';
 import { ContextBuilder } from './context.js';
 import { CIEventType } from '../ci/events.js';

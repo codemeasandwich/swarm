@@ -5,7 +5,8 @@
 
 import { CommunicationsFile } from './communications-file.js';
 import { FileWatcher } from './file-watcher.js';
-import { Agent } from './agent.js';
+// Agent imported for JSDoc type reference only
+/** @typedef {import('./agent.js').Agent} Agent */
 
 /**
  * Central coordinator that manages the communication system.

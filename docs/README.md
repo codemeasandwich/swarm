@@ -15,8 +15,8 @@ This directory contains detailed documentation about the multi-agent orchestrati
 ## Quick Links
 
 - [Main README](../README.md) - Project overview and getting started
-- [Orchestrator](../orchestrator/) - Main coordination engine
-- [Communication](../communication/) - Agent coordination system
+- [Orchestrator](../src/orchestrator/) - Main coordination engine
+- [Communication](../src/communication/) - Agent coordination system
 
 ## Architecture Highlights
 
@@ -26,4 +26,4 @@ The architecture documentation covers:
 2. **Core Components** - Module overview and responsibilities
 3. **Data Structures** - `communications.json` format and fields
 4. **Quick Start** - Running demos and interactive CLI
-5. **Key Concepts** - File watching, blocking, thread safety
+5. **Key Concepts** - File watching, blocking, event loop safety

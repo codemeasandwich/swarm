@@ -38,11 +38,11 @@ high | medium | low
 
 Epics are parsed and linked to the project plan:
 
-```python
-plan = parser.parse_plan(Path(".state/plans"))
-epic = plan.get_epic_by_id("E001")
-print(f"Epic: {epic.title}")
-print(f"Stories: {len(epic.stories)}")
+```javascript
+const plan = await parser.parsePlan('.state/plans');
+const epic = plan.getEpicById('E001');
+console.log(`Epic: ${epic.title}`);
+console.log(`Stories: ${epic.stories.length}`);
 ```
 
 ## Related

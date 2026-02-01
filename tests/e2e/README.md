@@ -10,55 +10,40 @@ These tests verify system behavior through public APIs, treating the system as a
 
 | File | Description |
 |------|-------------|
-| `test_agent_comm_flows.py` | Agent communication workflows |
-| `test_auth.py` | Authentication and credentials |
-| `test_cli_commands.py` | CLI command parsing and execution |
-| `test_file_watcher.py` | File change detection |
-| `test_orchestrator.py` | Orchestrator lifecycle and coordination |
+| `communication.test.js` | Agent communication workflows, coordinator |
+| `plan-models.test.js` | Task, ProjectPlan, PlanValidator |
 
 ## Running Tests
 
 ```bash
 # Run all e2e tests
-pytest tests/e2e/
+node --test tests/e2e/
 
 # Run with verbose output
-pytest tests/e2e/ -v
+node --test --test-reporter=spec tests/e2e/
 
 # Run specific file
-pytest tests/e2e/test_orchestrator.py
+node --test tests/e2e/communication.test.js
 
-# Run specific test
-pytest tests/e2e/test_agent_comm_flows.py::test_request_response -v
+# Run with coverage
+npm run test:coverage
 ```
 
 ## Test Highlights
 
-### Agent Communication (`test_agent_comm_flows.py`)
+### Communication Tests (`communication.test.js`)
 
+- CommunicationsFile operations
+- Agent status updates
 - Request/response workflows
-- Delivery acknowledgment
-- Multi-agent coordination
-- Blocking and unblocking
+- Coordinator agent management
 
-### CLI Commands (`test_cli_commands.py`)
+### Plan Model Tests (`plan-models.test.js`)
 
-- Status commands (mission, working, done, next)
-- Communication commands (request, complete, deliveries)
-- Interactive mode simulation
-
-### File Watcher (`test_file_watcher.py`)
-
-- Change detection via MD5 hashing
-- Callback notifications
-- Thread safety
-
-### Orchestrator (`test_orchestrator.py`)
-
-- Plan parsing and validation
-- Agent spawning
-- Lifecycle management
-- Milestone completion
+- Task creation and serialization
+- ProjectPlan operations
+- Dependency checking
+- PlanValidator validation
 
 ## Philosophy
 
@@ -71,16 +56,25 @@ These tests follow E2E testing principles:
 
 ## Fixtures
 
-Tests use fixtures from `../conftest.py`:
+Tests use fixtures from `../helpers/fixtures.js`:
 
-```python
-@pytest.fixture
-def temp_comm_file(tmp_path):
-    """Create a temporary communications file."""
-    return str(tmp_path / "communications.json")
+```javascript
+import { createTempDir, removeTempDir, createMockProjectPlan } from '../helpers/fixtures.js';
 
-@pytest.fixture
-def test_plan():
-    """Create a sample project plan."""
-    return ProjectPlan(...)
+describe('My Tests', () => {
+  let tempDir;
+
+  before(async () => {
+    tempDir = await createTempDir();
+  });
+
+  after(async () => {
+    await removeTempDir(tempDir);
+  });
+
+  test('example test', () => {
+    const planData = createMockProjectPlan();
+    // ...
+  });
+});
 ```

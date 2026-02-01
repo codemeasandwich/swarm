@@ -8,19 +8,32 @@ This directory contains example applications and proof-of-concept demos that ill
 
 ## Contents
 
-| Directory | Description |
-|-----------|-------------|
-| [poc/](./poc/) | Proof of concept demos |
-| [demos/](./demos/) | Feature demonstrations |
+| File | Description |
+|------|-------------|
+| [duo-demo.js](./duo-demo.js) | Two agents working together |
+| [blocking-demo.js](./blocking-demo.js) | Dependency-based blocking |
 
 ## Quick Start
+
+### Run the Duo Demo
+
+The duo demo shows two agents (researcher and coder) working together:
+
+```bash
+node examples/duo-demo.js
+```
+
+This demonstrates:
+- Agent mission and status updates
+- Request/response workflow
+- Delivery acknowledgment
 
 ### Run the Blocking Demo
 
 The blocking demo shows how agents coordinate through dependencies:
 
 ```bash
-python -m examples.demos.blocking_demo
+node examples/blocking-demo.js
 ```
 
 This demonstrates:
@@ -28,17 +41,9 @@ This demonstrates:
 2. Agent B completes partial work - A still blocked
 3. Agent B completes all work - A unblocks and continues
 
-### Run the Duo Demo
-
-The duo demo shows two agents working together:
-
-```bash
-python -m examples.poc.duo_demo
-```
-
 ## Demo Overview
 
-### Blocking Demo (`demos/blocking_demo.py`)
+### Blocking Demo (`blocking-demo.js`)
 
 Demonstrates dependency-based blocking:
 
@@ -56,7 +61,7 @@ Builder ─────► requests 2 tasks ─────► Designer
    UNBLOCKED ◄─── all deps satisfied ───┘
 ```
 
-### Duo Demo (`poc/duo_demo.py`)
+### Duo Demo (`duo-demo.js`)
 
 Two-agent proof of concept:
 - Researcher and Coder agents
@@ -65,27 +70,27 @@ Two-agent proof of concept:
 
 ## Creating Your Own Demo
 
-```python
-from communication.core import CommunicationsFile, FileWatcher, TaskAgent, Coordinator
+```javascript
+import { Coordinator, TaskAgent } from '../src/communication/index.js';
 
-# Create coordinator
-coordinator = Coordinator("communications.json")
-coordinator.start()
+// Create coordinator
+const coordinator = new Coordinator('communications.json');
+await coordinator.start();
 
-# Create agents
-researcher = coordinator.create_agent(TaskAgent, "researcher")
-coder = coordinator.create_agent(TaskAgent, "coder")
+// Create agents
+const researcher = coordinator.createAgent(TaskAgent, 'researcher');
+const coder = coordinator.createAgent(TaskAgent, 'coder');
 
-# Agent interactions
-researcher.set_mission("Gather requirements")
-researcher.request("coder", "Implement feature X")
+// Agent interactions
+await researcher.setMission('Gather requirements');
+await researcher.request('coder', 'Implement feature X');
 
-# Cleanup
-coordinator.stop()
+// Cleanup
+await coordinator.stop();
 ```
 
 ## Related
 
-- [/cli](../cli/) - Interactive CLI for manual testing
-- [/communication](../communication/) - Communication system details
-- [/orchestrator](../orchestrator/) - Full orchestration
+- [/src/cli](../src/cli/) - Interactive CLI for manual testing
+- [/src/communication](../src/communication/) - Communication system details
+- [/src/orchestrator](../src/orchestrator/) - Full orchestration

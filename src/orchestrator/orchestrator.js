@@ -14,11 +14,10 @@ import { TerminalManager } from '../runtime/process.js';
 import { BranchManager } from '../runtime/branches.js';
 import { WorkspaceManager } from '../runtime/workspace.js';
 import { LocalCIProvider } from '../ci/local.js';
-import { AgentLifecycleLoop, LoopResult } from '../lifecycle/loop.js';
-import { LifecycleState, LoopResultType, TaskStatus } from '../types/index.js';
+import { AgentLifecycleLoop } from '../lifecycle/loop.js';
+import { LifecycleState, LoopResultType } from '../types/index.js';
 import {
   OrchestratorError,
-  PlanParseError,
   PlanValidationError,
   AgentSpawnError,
 } from './errors.js';

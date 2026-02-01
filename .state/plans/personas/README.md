@@ -11,7 +11,7 @@ Personas define the roles, capabilities, and constraints for agents in the syste
 | Persona | Role | Description |
 |---------|------|-------------|
 | [architect.md](./architect.md) | architect | System design and API specifications |
-| [implementer.md](./implementer.md) | implementer | Python code implementation |
+| [implementer.md](./implementer.md) | implementer | Code implementation |
 | [tester.md](./tester.md) | tester | E2E test development |
 
 ## Persona File Format
@@ -57,15 +57,15 @@ architect
 
 Personas are loaded during plan parsing:
 
-```python
-plan = parser.parse_plan(Path(".state/plans"))
+```javascript
+const plan = await parser.parsePlan('.state/plans');
 
-architect = plan.get_persona_by_role("architect")
-print(f"Capabilities: {architect.capabilities}")
-print(f"Constraints: {architect.constraints}")
+const architect = plan.getPersonaByRole('architect');
+console.log(`Capabilities: ${architect.capabilities}`);
+console.log(`Constraints: ${architect.constraints}`);
 ```
 
 ## Related
 
-- [/personas](../../../personas/) - Persona matching and configuration
+- [/src/personas](../../../src/personas/) - Persona matching and configuration
 - [../stories/](../stories/) - Tasks reference roles

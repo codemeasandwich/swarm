@@ -10,74 +10,77 @@ This directory contains the test suite with a focus on end-to-end (E2E) tests th
 
 ```
 tests/
-├── conftest.py           # Shared fixtures
-├── e2e/                  # End-to-end tests
-│   ├── test_agent_comm_flows.py   # Agent communication tests
-│   ├── test_auth.py               # Authentication tests
-│   ├── test_cli_commands.py       # CLI command tests
-│   ├── test_file_watcher.py       # File watcher tests
-│   └── test_orchestrator.py       # Orchestrator tests
+├── helpers/
+│   ├── fixtures.js           # Test fixtures and utilities
+│   └── mocks.js              # Mock implementations
+├── e2e/                      # End-to-end tests
+│   ├── communication.test.js # Agent communication tests
+│   └── plan-models.test.js   # Plan model tests
 └── README.md
 ```
 
 ## Running Tests
 
-### All Tests with Coverage
+### All Tests
 
 ```bash
-pytest
+npm test
 ```
 
-This runs all tests with coverage reporting (configured in `pyproject.toml`).
+### With Coverage
+
+```bash
+npm run test:coverage
+```
 
 ### E2E Tests Only
 
 ```bash
-pytest tests/e2e/
+node --test tests/e2e/
 ```
 
 ### Specific Test File
 
 ```bash
-pytest tests/e2e/test_orchestrator.py -v
-```
-
-### Specific Test
-
-```bash
-pytest tests/e2e/test_cli_commands.py::test_mission_command -v
+node --test tests/e2e/communication.test.js
 ```
 
 ## Coverage
 
-Coverage is configured in `pyproject.toml`:
-
-- Minimum coverage: 80%
-- Reports: terminal + HTML
-- HTML report: `coverage_html/index.html`
+Coverage is measured using c8 (configured in `package.json`):
 
 ```bash
+# Run tests with coverage
+npm run test:coverage
+
 # View coverage report
-open coverage_html/index.html
+open coverage/index.html
 ```
 
 ## Test Categories
 
 | Test File | Coverage |
 |-----------|----------|
-| `test_agent_comm_flows.py` | Agent communication, requests, deliveries |
-| `test_auth.py` | Authentication utilities |
-| `test_cli_commands.py` | CLI commands and modes |
-| `test_file_watcher.py` | File change detection |
-| `test_orchestrator.py` | Orchestrator lifecycle |
+| `communication.test.js` | Agent communication, requests, deliveries, coordinator |
+| `plan-models.test.js` | Task, ProjectPlan, PlanValidator |
 
 ## Fixtures
 
-Common fixtures are defined in `conftest.py`:
+Common fixtures are defined in `helpers/fixtures.js`:
 
-- `temp_comm_file` - Temporary communications.json
-- `test_plan` - Sample project plan
-- `mock_terminal_manager` - Mocked process manager
+- `createTempDir()` - Create temporary directory
+- `removeTempDir()` - Clean up temporary directory
+- `createMockCommFile()` - Create mock communications.json
+- `createMockProjectPlan()` - Sample project plan data
+
+## Mock Implementations
+
+Mocks are defined in `helpers/mocks.js`:
+
+- `createMockCIProvider()` - Mock CI/CD provider
+- `createMockTerminalManager()` - Mock process manager
+- `createMockWorkspaceManager()` - Mock workspace manager
+- `createMockBranchManager()` - Mock git branch manager
 
 ## Writing Tests
 
@@ -88,24 +91,27 @@ Tests follow the E2E philosophy:
 3. Minimize internal knowledge
 4. Use real components when possible
 
-```python
-import pytest
-from communication.core import CommunicationsFile
+```javascript
+import { test, describe } from 'node:test';
+import assert from 'node:assert/strict';
+import { CommunicationsFile } from '../../src/communication/communications-file.js';
 
-def test_agent_communication(temp_comm_file):
-    """Test that agents can exchange requests."""
-    comm = CommunicationsFile(temp_comm_file)
+describe('Agent Communication', () => {
+  test('agents can exchange requests', async () => {
+    const commFile = new CommunicationsFile('/tmp/test-comm.json');
 
-    # Agent A sends request to Agent B
-    comm.add_request("agent_a", "agent_b", "Need help")
+    // Agent A sends request to Agent B
+    await commFile.addRequest('agent_a', 'agent_b', 'Need help');
 
-    # Agent B receives the request
-    requests = comm.get_requests_for_agent("agent_b")
-    assert len(requests) == 1
-    assert requests[0] == ("agent_a", "Need help")
+    // Agent B receives the request
+    const requests = await commFile.getRequestsForAgent('agent_b');
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].fromAgent, 'agent_a');
+  });
+});
 ```
 
 ## Related
 
 - [/examples](../examples/) - Demo applications
-- [pyproject.toml](../pyproject.toml) - Test configuration
+- [package.json](../package.json) - Test configuration

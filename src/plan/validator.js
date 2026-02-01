@@ -4,7 +4,7 @@
  * @module plan/validator
  */
 
-import { TaskStatus } from '../types/index.js';
+// TaskStatus available via types if needed
 
 /**
  * @typedef {Object} ValidationResult

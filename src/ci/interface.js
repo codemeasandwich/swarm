@@ -291,7 +291,7 @@ export class CIProvider {
    * @param {string} branch - Branch name
    * @returns {Promise<BuildStatus>}
    */
-  async triggerBuild(branch) {
+  async triggerBuild(_branch) {
     throw new Error('Not implemented');
   }
 
@@ -300,7 +300,7 @@ export class CIProvider {
    * @param {string} runId - Build run ID
    * @returns {Promise<BuildStatus>}
    */
-  async getBuildStatus(runId) {
+  async getBuildStatus(_runId) {
     throw new Error('Not implemented');
   }
 
@@ -310,7 +310,7 @@ export class CIProvider {
    * @param {number} [timeout=300000] - Timeout in milliseconds
    * @returns {Promise<BuildStatus>}
    */
-  async waitForBuild(runId, timeout = 300000) {
+  async waitForBuild(_runId, _timeout = 300000) {
     throw new Error('Not implemented');
   }
 
@@ -323,7 +323,7 @@ export class CIProvider {
    * @param {string} props.targetBranch - Target branch
    * @returns {Promise<PRInfo>}
    */
-  async createPR({ title, body, sourceBranch, targetBranch }) {
+  async createPR({ title: _title, body: _body, sourceBranch: _sourceBranch, targetBranch: _targetBranch }) {
     throw new Error('Not implemented');
   }
 
@@ -332,7 +332,7 @@ export class CIProvider {
    * @param {number} prNumber - PR number
    * @returns {Promise<PRInfo>}
    */
-  async getPRStatus(prNumber) {
+  async getPRStatus(_prNumber) {
     throw new Error('Not implemented');
   }
 
@@ -341,7 +341,7 @@ export class CIProvider {
    * @param {number} prNumber - PR number
    * @returns {Promise<PRInfo>}
    */
-  async mergePR(prNumber) {
+  async mergePR(_prNumber) {
     throw new Error('Not implemented');
   }
 
@@ -351,7 +351,7 @@ export class CIProvider {
    * @param {number} [timeout=600000] - Timeout in milliseconds
    * @returns {Promise<PRInfo>}
    */
-  async waitForPRMerge(prNumber, timeout = 600000) {
+  async waitForPRMerge(_prNumber, _timeout = 600000) {
     throw new Error('Not implemented');
   }
 
@@ -360,7 +360,7 @@ export class CIProvider {
    * @param {CIEventHandler} handler - Event handler
    * @returns {Promise<void>}
    */
-  async subscribe(handler) {
+  async subscribe(_handler) {
     throw new Error('Not implemented');
   }
 
@@ -369,7 +369,7 @@ export class CIProvider {
    * @param {CIEventHandler} handler - Event handler
    * @returns {Promise<void>}
    */
-  async unsubscribe(handler) {
+  async unsubscribe(_handler) {
     throw new Error('Not implemented');
   }
 }

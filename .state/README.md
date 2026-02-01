@@ -38,14 +38,16 @@ This directory contains runtime state and plan files used by the orchestration s
 
 The `.state` directory is specified when starting the orchestrator:
 
-```python
-config = OrchestratorConfig(
-    repo_dir=Path("."),
-    plan_dir=Path(".state/plans"),
-)
+```javascript
+import { Orchestrator, OrchestratorConfig } from './src/orchestrator/orchestrator.js';
+
+const config = new OrchestratorConfig({
+  repoDir: '.',
+  planDir: '.state/plans',
+});
 ```
 
 ## Related
 
-- [/plan](../plan/) - Plan parsing module
-- [/orchestrator](../orchestrator/) - Uses plans from this directory
+- [/src/plan](../src/plan/) - Plan parsing module
+- [/src/orchestrator](../src/orchestrator/) - Uses plans from this directory

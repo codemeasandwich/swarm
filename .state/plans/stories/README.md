@@ -66,4 +66,4 @@ E001
 ## Related
 
 - [../epics/](../epics/) - Epic definitions
-- [/plan](../../../plan/) - Story parsing
+- [/src/plan](../../../src/plan/) - Story parsing

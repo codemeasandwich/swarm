@@ -5,10 +5,10 @@
  */
 
 import { spawn } from 'node:child_process';
-import { writeFile, readFile, mkdir, access, constants } from 'node:fs/promises';
+import { writeFile, readFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CIProvider, BuildStatus, PRInfo, CIEvent } from './interface.js';
-import { CIEventEmitter, CIEventType } from './events.js';
+import { CIProvider, BuildStatus, PRInfo } from './interface.js';
+import { CIEventEmitter } from './events.js';
 import { BuildStatusType, PRStatusType } from '../types/index.js';
 import { CIError, TimeoutError } from '../orchestrator/errors.js';
 

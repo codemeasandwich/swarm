@@ -59,14 +59,14 @@ Description of milestone.
 
 Plans are parsed by the `PlanParser` class:
 
-```python
-from plan.parser import PlanParser
+```javascript
+import { PlanParser } from '../../src/plan/parser.js';
 
-parser = PlanParser()
-plan = parser.parse_plan(Path(".state/plans"))
+const parser = new PlanParser();
+const plan = await parser.parsePlan('.state/plans');
 ```
 
 ## Related
 
-- [/plan](../../plan/) - Plan parsing and validation
-- [/personas](../../personas/) - Persona matching
+- [/src/plan](../../src/plan/) - Plan parsing and validation
+- [/src/personas](../../src/personas/) - Persona matching

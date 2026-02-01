@@ -38,16 +38,16 @@ A lightweight, file-based coordination system for multiple independent agents. A
 | Module | Purpose |
 |--------|---------|
 | `communications.json` | Shared state file - single source of truth |
-| `communication/core.py` | Core library with Agent, FileWatcher, and CommunicationsFile classes |
-| `cli/main.py` | Interactive CLI for running agents |
-| `examples/demos/blocking_demo.py` | Demo showing dependency-based blocking |
+| `src/communication/` | Core library with Agent, FileWatcher, and CommunicationsFile classes |
+| `src/cli/` | Interactive CLI for running agents |
+| `examples/blocking-demo.js` | Demo showing dependency-based blocking |
 
 ## Quick Start
 
 ### Run the Blocking Demo
 
 ```bash
-python3 -m examples.demos.blocking_demo
+node examples/blocking-demo.js
 ```
 
 This demonstrates two agents (Builder and Designer) coordinating work:
@@ -59,36 +59,17 @@ This demonstrates two agents (Builder and Designer) coordinating work:
 
 **Terminal 1 - Start the file watcher:**
 ```bash
-python3 -m cli.main watcher
+npm run cli -- watcher
 ```
 
 **Terminal 2 - Start an agent:**
 ```bash
-python3 -m cli.main agent researcher
-
-researcher> mission Gather API requirements
-researcher> request coder Please implement the auth module
-researcher> status
+npm run cli -- agent researcher
 ```
 
 **Terminal 3 - Start another agent:**
 ```bash
-python3 -m cli.main agent coder
-
-coder> requests
-# Shows: "From researcher: Please implement the auth module"
-
-coder> working Implementing auth module
-coder> complete researcher Please implement the auth module | Done! See auth.py
-```
-
-**Back in Terminal 2:**
-```bash
-researcher> deliveries
-# Shows completed work from coder
-
-researcher> ack
-# Clears deliveries
+npm run cli -- agent coder
 ```
 
 ## Data Structure
@@ -97,19 +78,19 @@ researcher> ack
 {
   "_meta": {
     "version": "1.0",
-    "last_updated": "2026-01-19T08:00:00.000000",
-    "last_updated_by": "builder"
+    "lastUpdated": "2026-01-19T08:00:00.000Z",
+    "lastUpdatedBy": "builder"
   },
   "builder": {
     "mission": "Build the user management application",
-    "working_on": "Implementing user CRUD",
+    "workingOn": "Implementing user CRUD",
     "done": "",
     "next": "Deploy to staging",
     "requests": [],
     "added": [
       ["designer", "Schema: users(id, email, hash)", "Need DB schema"]
     ],
-    "last_updated": "2026-01-19T08:00:00.000000"
+    "lastUpdated": "2026-01-19T08:00:00.000Z"
   }
 }
 ```
@@ -117,11 +98,11 @@ researcher> ack
 | Field | Description |
 |-------|-------------|
 | `mission` | Agent's overall goal |
-| `working_on` | Current task |
+| `workingOn` | Current task |
 | `done` | Last completed work |
 | `next` | Planned next step |
 | `requests` | Pending requests TO other agents: `[target, text]` |
-| `added` | Deliveries FROM other agents: `[from, description, original_request]` |
+| `added` | Deliveries FROM other agents: `[from, description, originalRequest]` |
 
 ## CLI Commands
 
@@ -139,7 +120,7 @@ researcher> ack
 |---------|-------------|
 | `request <agent> <text>` | Send a request to another agent |
 | `requests` | View requests directed at you |
-| `complete <agent> <request> \| <description>` | Complete a request and deliver result |
+| `complete <agent> <request> | <description>` | Complete a request and deliver result |
 | `deliveries` | View work delivered to you |
 | `ack` | Acknowledge and clear deliveries |
 
@@ -154,20 +135,23 @@ researcher> ack
 ## Key Concepts
 
 ### File Watcher Pattern
-- FileWatcher polls `communications.json` using MD5 hashing
-- When changes detected, all agents (except the writer) are notified
-- Poll interval: 0.5 seconds
+- FileWatcher uses chokidar for cross-platform file watching
+- When changes detected, all registered agents are notified via callbacks
+- Efficient native filesystem events (no polling)
 
 ### Blocking on Dependencies
-```python
-# Agent can wait for multiple deliveries before proceeding
-while len(my_deliveries) < required_count:
-    # FileWatcher notifies when communications.json changes
-    # Agent checks if dependencies are satisfied
-    pass
-# All dependencies received - unblocked!
+```javascript
+// Agent can wait for multiple deliveries before proceeding
+const deliveries = await agent.getMyDeliveries();
+while (deliveries.length < requiredCount) {
+  // FileWatcher notifies when communications.json changes
+  // Agent checks if dependencies are satisfied
+  await sleep(100);
+}
+// All dependencies received - unblocked!
 ```
 
-### Thread Safety
-- `CommunicationsFile` uses threading locks for concurrent access
-- Safe for multiple agents in separate processes
+### Event Loop Safety
+- Node.js single-threaded event loop eliminates race conditions
+- Async/await patterns for clean asynchronous code
+- No explicit locking needed (unlike Python threading)

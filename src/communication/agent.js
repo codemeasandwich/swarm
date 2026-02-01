@@ -91,7 +91,7 @@ export class Agent {
    * @param {Object} data - Current file data
    * @returns {void}
    */
-  onCommunicationUpdate(updatedBy, data) {
+  onCommunicationUpdate(_updatedBy, _data) {
     // Default implementation does nothing
     // Override in subclass
   }
