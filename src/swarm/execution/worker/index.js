@@ -437,6 +437,31 @@ export function createEpisodicWorker() {
       const duration = Date.now() - startTime;
       const tokensUsed = Math.floor(input.contextPrompt.length / 4);
 
+      // Record profiling data before completing task
+      if (context.profiler) {
+        // Tool usage tracking (simulated - real execution would parse actual tool calls)
+        const availableTools = input.profile.tools || ['read', 'write', 'grep', 'glob', 'bash'];
+        const callCounts = {};  // Empty for simulated execution
+        context.profiler.recordToolUsage(
+          input.task.id,
+          worker.id,
+          availableTools,
+          callCounts
+        );
+
+        // Context utilization tracking
+        const budgetTokens = context.getMetric?.('contextBudget') || 4000;
+        const inputTokens = tokensUsed;
+        const outputTokens = Math.floor(worker.outputBuffer.join('').length / 4);
+        context.profiler.recordContextUtilization(
+          input.task.id,
+          worker.id,
+          budgetTokens,
+          inputTokens,
+          outputTokens
+        );
+      }
+
       worker.completeTask(true, tokensUsed);
 
       // Episodic: release and terminate
@@ -500,6 +525,31 @@ export function createPersistentWorker() {
 
       const duration = Date.now() - startTime;
       const tokensUsed = Math.floor(input.contextPrompt.length / 4);
+
+      // Record profiling data before completing task
+      if (context.profiler) {
+        // Tool usage tracking (simulated - real execution would parse actual tool calls)
+        const availableTools = input.profile.tools || ['read', 'write', 'grep', 'glob', 'bash'];
+        const callCounts = {};  // Empty for simulated execution
+        context.profiler.recordToolUsage(
+          input.task.id,
+          worker.id,
+          availableTools,
+          callCounts
+        );
+
+        // Context utilization tracking
+        const budgetTokens = context.getMetric?.('contextBudget') || 4000;
+        const inputTokens = tokensUsed;
+        const outputTokens = Math.floor(worker.outputBuffer.join('').length / 4);
+        context.profiler.recordContextUtilization(
+          input.task.id,
+          worker.id,
+          budgetTokens,
+          inputTokens,
+          outputTokens
+        );
+      }
 
       worker.completeTask(true, tokensUsed);
 

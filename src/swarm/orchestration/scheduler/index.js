@@ -116,6 +116,15 @@ export function createFifoScheduler() {
             maxQueueSize: config.maxQueueSize,
           }
         );
+
+        // Record parallelism snapshot
+        const completedCount = tasks.filter(t => t.status === TaskStatus.COMPLETED).length;
+        context.profiler.recordParallelismSnapshot(
+          scheduled.length,           // activeWorkers (tasks about to be assigned)
+          {},                          // tasksByWorker (populated by router)
+          limitedQueue.length,         // pendingTasks
+          completedCount               // completedTasks
+        );
       }
 
       context.emit({
@@ -229,6 +238,15 @@ export function createPriorityScheduler() {
             maxQueueSize: config.maxQueueSize,
             priorityWeights: weights,
           }
+        );
+
+        // Record parallelism snapshot
+        const completedCount = tasks.filter(t => t.status === TaskStatus.COMPLETED).length;
+        context.profiler.recordParallelismSnapshot(
+          scheduled.length,           // activeWorkers (tasks about to be assigned)
+          {},                          // tasksByWorker (populated by router)
+          limitedQueue.length,         // pendingTasks
+          completedCount               // completedTasks
         );
       }
 
