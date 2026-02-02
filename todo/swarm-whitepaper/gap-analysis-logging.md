@@ -314,3 +314,26 @@ Add a `profilingMode: true` configuration option that enables detailed decision 
 - Phase 4: Iteration history + refinement history
 - Phase 5: Export & analysis utilities
 - Phase 6: E2E profiling tests
+
+### 2026-02-02: Phase 4 Complete
+**Status:** History tracking infrastructure complete
+
+**Completed:**
+- Verified `recordPlannerIteration()` is wired in iterative planner (iteration 1 recorded)
+- Verified `recordStrategyRefinement()` method exists and is ready
+- Verified `export()` includes `history.plannerIterations` and `history.strategyRefinements`
+- Verified event types `PLANNER_ITERATION` and `STRATEGY_REFINED` are defined
+
+**Files Already Wired:**
+- `src/swarm/orchestration/planner/index.js:142-154` - Records iteration 1 with changes array
+- `src/swarm/measurement/profiling/store.js:264-310` - Both history tracking methods implemented
+
+**Notes:**
+- Phase 4 is INFRASTRUCTURE COMPLETE
+- Subsequent planner iterations (2, 3, etc.) will be recorded when iteration loop logic is added
+- Strategy refinements will be recorded when mid-run adaptation logic is added
+- Current SWARM uses static strategies per run (no adaptation yet)
+
+**Next Steps:**
+- Phase 5: Export & analysis utilities
+- Phase 6: E2E profiling tests
