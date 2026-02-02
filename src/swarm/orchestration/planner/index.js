@@ -68,6 +68,27 @@ export function createSingleShotPlanner() {
       // In production, this would call the LLM via Claude CLI
       const tasks = decomposeGoal(input.goal, config);
 
+      // Record strategy decision if profiler is available
+      if (context.profiler) {
+        context.profiler.recordStrategyDecision(
+          'planner',
+          'single-shot',
+          ['iterative', 'hierarchical'],
+          {
+            goalLength: input.goal.length,
+            taskGranularity: config.taskGranularity,
+            contextBudget: config.contextBudget,
+            rule: 'Single-shot selected: complete plan in one LLM call for cost efficiency',
+          },
+          {
+            implementation: config.implementation,
+            taskGranularity: config.taskGranularity,
+            parallelismHint: config.parallelismHint,
+            contextBudget: config.contextBudget,
+          }
+        );
+      }
+
       context.emit({
         timestamp: Date.now(),
         runId: context.runId,
@@ -96,6 +117,42 @@ export function createIterativePlanner() {
     async (input, config, context) => {
       // First wave: initial decomposition
       const initialTasks = decomposeGoal(input.goal, config);
+
+      // Record strategy decision if profiler is available
+      if (context.profiler) {
+        context.profiler.recordStrategyDecision(
+          'planner',
+          'iterative',
+          ['single-shot', 'hierarchical'],
+          {
+            goalLength: input.goal.length,
+            taskGranularity: config.taskGranularity,
+            hasExistingTasks: (input.existingTasks?.length || 0) > 0,
+            rule: 'Iterative selected: unknown scope, will refine based on results',
+          },
+          {
+            implementation: config.implementation,
+            taskGranularity: config.taskGranularity,
+            parallelismHint: config.parallelismHint,
+            contextBudget: config.contextBudget,
+          }
+        );
+
+        // Record first iteration
+        context.profiler.recordPlannerIteration(
+          1,
+          0,
+          initialTasks.length,
+          initialTasks.map((t, i) => ({
+            type: /** @type {'added'} */ ('added'),
+            task: t.id,
+            reason: i === 0 ? 'Initial decomposition' : 'Parallel subtask',
+          })),
+          'initial_planning',
+          undefined,
+          config.contextBudget || 2000
+        );
+      }
 
       // In production, this would iterate based on feedback
       // For now, just return the initial decomposition

@@ -67,12 +67,33 @@ export function createStaticRouter() {
     async (input, config, context) => {
       const { task, workers } = input;
 
+      // Build candidate scores for profiling
+      const candidateScores = {};
+      workers.forEach((w) => {
+        candidateScores[w.id] = config.staticMapping?.[task.type] === w.id ? 1.0 : 0.5;
+      });
+
       // Use static mapping if provided
       if (config.staticMapping && config.staticMapping[task.type]) {
         const mappedWorkerId = config.staticMapping[task.type];
         const worker = workers.find((w) => w.id === mappedWorkerId);
 
         if (worker) {
+          // Record routing decision if profiler is available
+          if (context.profiler) {
+            context.profiler.recordWorkerRouting(
+              task.id,
+              task.type,
+              worker.id,
+              candidateScores,
+              `Static mapping: ${task.type} -> ${worker.id}`,
+              {
+                implementation: config.implementation,
+                staticMapping: config.staticMapping,
+              }
+            );
+          }
+
           context.emit({
             timestamp: Date.now(),
             runId: context.runId,
@@ -93,6 +114,21 @@ export function createStaticRouter() {
 
       // Fallback: return first available worker
       const worker = workers[0] || null;
+
+      // Record routing decision if profiler is available
+      if (context.profiler) {
+        context.profiler.recordWorkerRouting(
+          task.id,
+          task.type,
+          worker?.id || 'none',
+          candidateScores,
+          worker ? 'Fallback to first available worker' : 'No workers available',
+          {
+            implementation: config.implementation,
+            staticMapping: config.staticMapping,
+          }
+        );
+      }
 
       context.emit({
         timestamp: Date.now(),
@@ -194,10 +230,33 @@ export function createCapabilityRouter() {
       // Sort by score descending
       scored.sort((a, b) => b.score - a.score);
 
+      // Build candidate scores for profiling
+      const candidateScores = {};
+      scored.forEach((s) => {
+        candidateScores[s.worker.id] = s.score;
+      });
+
       // Find best matching worker above threshold
       const best = scored.find((s) => s.score >= threshold);
 
       if (best) {
+        // Record routing decision if profiler is available
+        if (context.profiler) {
+          context.profiler.recordWorkerRouting(
+            task.id,
+            task.type,
+            best.worker.id,
+            candidateScores,
+            `Capability match: score ${best.score.toFixed(2)} (threshold: ${threshold})`,
+            {
+              implementation: config.implementation,
+              capabilityThreshold: threshold,
+              taskRequiredSkills: task.requiredSkills,
+              taskToolRequirements: task.toolRequirements,
+            }
+          );
+        }
+
         context.emit({
           timestamp: Date.now(),
           runId: context.runId,
@@ -218,6 +277,24 @@ export function createCapabilityRouter() {
       // No worker meets threshold - return best available with warning
       const fallback = scored[0];
       if (fallback) {
+        // Record routing decision if profiler is available
+        if (context.profiler) {
+          context.profiler.recordWorkerRouting(
+            task.id,
+            task.type,
+            fallback.worker.id,
+            candidateScores,
+            `Best available worker (below threshold ${threshold}): score ${fallback.score.toFixed(2)}`,
+            {
+              implementation: config.implementation,
+              capabilityThreshold: threshold,
+              taskRequiredSkills: task.requiredSkills,
+              taskToolRequirements: task.toolRequirements,
+              belowThreshold: true,
+            }
+          );
+        }
+
         context.emit({
           timestamp: Date.now(),
           runId: context.runId,
@@ -233,6 +310,21 @@ export function createCapabilityRouter() {
           matchScore: fallback.score,
           reason: `Best available worker (below threshold ${threshold}): score ${fallback.score.toFixed(2)}`,
         };
+      }
+
+      // Record no workers available if profiler is available
+      if (context.profiler) {
+        context.profiler.recordWorkerRouting(
+          task.id,
+          task.type,
+          'none',
+          candidateScores,
+          'No workers available',
+          {
+            implementation: config.implementation,
+            capabilityThreshold: threshold,
+          }
+        );
       }
 
       context.emit({

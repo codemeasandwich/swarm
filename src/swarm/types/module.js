@@ -31,6 +31,7 @@ export const ModuleType = Object.freeze({
   TRACER: 'tracer',
   COST_TRACKER: 'cost-tracker',
   QUALITY_ASSESSOR: 'quality-assessor',
+  PROFILER: 'profiler',
 });
 
 /**

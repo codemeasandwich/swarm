@@ -138,6 +138,23 @@ export function createDeterministicJudge() {
         level: passed ? 'info' : 'warn',
       });
 
+      // Record evaluation decision for profiling
+      if (context.profiler) {
+        context.profiler.recordEvaluationDecision(
+          input.task.id,
+          input.task.workerId || 'unknown',
+          passed,
+          breakdown,
+          passed ? 'pass' : (config.retryOnFailure ? 'retry' : 'fail'),
+          `Deterministic evaluation: score ${score.toFixed(2)} ${passed ? '>=' : '<'} threshold ${threshold}`,
+          {
+            implementation: 'deterministic',
+            passingThreshold: threshold,
+            retryOnFailure: config.retryOnFailure,
+          }
+        );
+      }
+
       return {
         passed,
         score,
@@ -158,6 +175,25 @@ export function createLlmJudge() {
     'judge-llm-eval',
     'llm-eval',
     async (input, config, context) => {
+      // Record strategy decision for profiling
+      if (context.profiler) {
+        context.profiler.recordStrategyDecision(
+          'judge',
+          'llm-eval',
+          ['deterministic', 'hybrid'],
+          {
+            hasRubric: !!config.rubric,
+            dimensionCount: config.rubric?.dimensions?.length || 0,
+            rule: 'LLM evaluation selected for subjective quality assessment',
+          },
+          {
+            implementation: 'llm-eval',
+            passingThreshold: config.rubric?.passingThreshold || 0.7,
+            retryOnFailure: config.retryOnFailure,
+          }
+        );
+      }
+
       // In production, this would call Claude CLI to evaluate
       // For now, simulate LLM evaluation with deterministic baseline
 
@@ -202,6 +238,25 @@ export function createLlmJudge() {
         level: passed ? 'info' : 'warn',
       });
 
+      // Record evaluation decision for profiling
+      if (context.profiler) {
+        const dimensionNames = rubric?.dimensions?.map(d => d.name) || [];
+        context.profiler.recordEvaluationDecision(
+          input.task.id,
+          input.task.workerId || 'unknown',
+          passed,
+          breakdown,
+          passed ? 'pass' : (config.retryOnFailure ? 'retry' : 'fail'),
+          `LLM evaluation: score ${finalScore.toFixed(2)} ${passed ? '>=' : '<'} threshold ${threshold}. Dimensions assessed: ${dimensionNames.join(', ') || 'none'}`,
+          {
+            implementation: 'llm-eval',
+            passingThreshold: threshold,
+            retryOnFailure: config.retryOnFailure,
+            rubricDimensions: dimensionNames,
+          }
+        );
+      }
+
       return {
         passed,
         score: finalScore,
@@ -222,6 +277,25 @@ export function createHybridJudge() {
     'judge-hybrid',
     'hybrid',
     async (input, config, context) => {
+      // Record strategy decision for profiling
+      if (context.profiler) {
+        context.profiler.recordStrategyDecision(
+          'judge',
+          'hybrid',
+          ['deterministic', 'llm-eval'],
+          {
+            hasRubric: !!config.rubric,
+            dimensionCount: config.rubric?.dimensions?.length || 0,
+            rule: 'Hybrid evaluation selected: deterministic hard gates + LLM quality assessment',
+          },
+          {
+            implementation: 'hybrid',
+            passingThreshold: config.rubric?.passingThreshold || 0.7,
+            retryOnFailure: config.retryOnFailure,
+          }
+        );
+      }
+
       // First: deterministic gates must pass
       const deterministicResult = evaluateDeterministic(input);
       const breakdown = { ...deterministicResult.breakdown };
@@ -239,6 +313,23 @@ export function createHybridJudge() {
           payload: { score: deterministicResult.score, passed: false, reason: 'tests_failed' },
           level: 'warn',
         });
+
+        // Record evaluation decision for profiling - hard gate failure
+        if (context.profiler) {
+          context.profiler.recordEvaluationDecision(
+            input.task.id,
+            input.task.workerId || 'unknown',
+            false,
+            breakdown,
+            config.retryOnFailure ? 'retry' : 'fail',
+            'Hybrid evaluation: hard gate failed - tests must pass before LLM quality assessment',
+            {
+              implementation: 'hybrid',
+              failureReason: 'tests_failed',
+              retryOnFailure: config.retryOnFailure,
+            }
+          );
+        }
 
         return {
           passed: false,
@@ -287,6 +378,25 @@ export function createHybridJudge() {
         payload: { score: finalScore, passed, breakdown },
         level: passed ? 'info' : 'warn',
       });
+
+      // Record evaluation decision for profiling - final result
+      if (context.profiler) {
+        const dimensionNames = rubric?.dimensions?.map(d => d.name) || [];
+        context.profiler.recordEvaluationDecision(
+          input.task.id,
+          input.task.workerId || 'unknown',
+          passed,
+          breakdown,
+          passed ? 'pass' : (config.retryOnFailure ? 'retry' : 'fail'),
+          `Hybrid evaluation: hard gates passed, LLM score ${finalScore.toFixed(2)} ${passed ? '>=' : '<'} threshold ${threshold}. Dimensions: ${dimensionNames.join(', ') || 'none'}`,
+          {
+            implementation: 'hybrid',
+            passingThreshold: threshold,
+            retryOnFailure: config.retryOnFailure,
+            rubricDimensions: dimensionNames,
+          }
+        );
+      }
 
       return {
         passed,

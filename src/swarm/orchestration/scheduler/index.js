@@ -99,6 +99,25 @@ export function createFifoScheduler() {
       const maxQueue = config.maxQueueSize || 100;
       const limitedQueue = queued.slice(0, maxQueue);
 
+      // Record batch sizing decision if profiler is available
+      if (context.profiler) {
+        context.profiler.recordBatchSizing(
+          scheduled.length,
+          available.length,
+          availableWorkers,
+          {
+            strategy: 'fifo',
+            rule: 'Take up to availableWorkers tasks in FIFO order',
+            dependencyBlocked: tasks.length - available.length,
+            queueLimitApplied: queued.length > maxQueue,
+          },
+          {
+            implementation: config.implementation,
+            maxQueueSize: config.maxQueueSize,
+          }
+        );
+      }
+
       context.emit({
         timestamp: Date.now(),
         runId: context.runId,
@@ -188,6 +207,30 @@ export function createPriorityScheduler() {
       // Enforce queue size limit
       const maxQueue = config.maxQueueSize || 100;
       const limitedQueue = queued.slice(0, maxQueue);
+
+      // Record batch sizing decision if profiler is available
+      if (context.profiler) {
+        const topPriority = scheduled.length > 0 ? calculatePriority(scheduled[0], weights) : 0;
+        context.profiler.recordBatchSizing(
+          scheduled.length,
+          available.length,
+          availableWorkers,
+          {
+            strategy: 'priority',
+            rule: 'Sort by priority score, take top availableWorkers',
+            weights,
+            topPriorityScore: topPriority,
+            lowestScheduledScore: scheduled.length > 0 ? calculatePriority(scheduled[scheduled.length - 1], weights) : 0,
+            dependencyBlocked: tasks.length - available.length,
+            queueLimitApplied: queued.length > maxQueue,
+          },
+          {
+            implementation: config.implementation,
+            maxQueueSize: config.maxQueueSize,
+            priorityWeights: weights,
+          }
+        );
+      }
 
       context.emit({
         timestamp: Date.now(),

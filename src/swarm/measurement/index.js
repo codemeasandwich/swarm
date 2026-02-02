@@ -84,6 +84,24 @@ export {
   registerHTMLReportGenerator,
 } from './reports/index.js';
 
+// Profiling
+export {
+  // Store
+  ProfilingStore,
+  // Events
+  ProfilingEventType,
+  createStrategyDecision,
+  createWorkerRouting,
+  createToolUsage,
+  createContextUtilization,
+  createParallelismSnapshot,
+  // Config
+  DEFAULT_PROFILING_CONFIG,
+  // Module
+  createProfilingModule,
+  registerProfilingModules,
+} from './profiling/index.js';
+
 // =============================================================================
 // LAYER REGISTRATION
 // =============================================================================
@@ -93,6 +111,7 @@ import { registerTracers } from './tracer/index.js';
 import { registerCostTrackers } from './cost/index.js';
 import { registerQualityAssessors } from './quality/index.js';
 import { registerJSONReportGenerator } from './reports/index.js';
+import { registerProfilingModules } from './profiling/index.js';
 
 /**
  * Register all measurement layer modules
@@ -103,6 +122,7 @@ export function registerMeasurementModules() {
   registerCostTrackers();
   registerQualityAssessors();
   registerJSONReportGenerator();
+  registerProfilingModules();
 }
 
 // Auto-register on import

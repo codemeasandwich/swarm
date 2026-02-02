@@ -405,6 +405,7 @@ export function createWorkflowState() {
  * @property {(event: import('./trace.js').TraceEvent) => void} emit - Emit trace event
  * @property {(name: string) => number | undefined} getMetric - Get metric value
  * @property {(name: string, value: number) => void} setMetric - Set metric value
+ * @property {import('../measurement/profiling/store.js').ProfilingStore} [profiler] - Optional profiler for detailed decision logging
  */
 
 /**
