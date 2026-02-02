@@ -8,10 +8,17 @@ coverage/
 # Build output
 dist/
 build/
+bin/
 
 # Runtime state
 .state/
 communications.json
+
+# Task tracking
+todo/
+
+# Documentation (generated)
+docs/
 
 # Logs
 logs/

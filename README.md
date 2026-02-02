@@ -1,6 +1,8 @@
-# Multi-Agent Orchestration Framework
+# SWARM Framework
 
-> A Node.js framework for coordinating multiple AI agents to collaborate on software engineering projects.
+> **S**ystematic **W**orkflow **A**gent **R**untime **M**anager
+>
+> A modular Node.js framework for constructing and measuring AI agent workflows.
 
 ## Overview
 

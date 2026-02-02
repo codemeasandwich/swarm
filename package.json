@@ -1,7 +1,7 @@
 {
-  "name": "orchestration",
+  "name": "swarm-framework",
   "version": "1.0.0",
-  "description": "Multi-agent orchestration framework for coordinating AI agents on software engineering projects",
+  "description": "Systematic Workflow Agent Runtime Manager - A modular framework for constructing and measuring AI agent workflows",
   "type": "module",
   "main": "src/index.js",
   "bin": {
@@ -15,11 +15,12 @@
     "lint": "eslint src/"
   },
   "keywords": [
-    "multi-agent",
+    "swarm",
+    "workflow",
+    "agent",
     "orchestration",
-    "ai",
-    "claude",
-    "coordination"
+    "modular",
+    "ai"
   ],
   "author": "",
   "license": "MIT",
