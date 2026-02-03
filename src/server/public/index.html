@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SWARM - Project Manager</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>SWARM</h1>
+      <span class="subtitle">Systematic Workflow Agent Runtime Manager</span>
+      <span id="connection-status" class="status disconnected">Disconnected</span>
+    </header>
+
+    <main class="wizard-container">
+      <!-- Step indicators -->
+      <nav class="wizard-steps">
+        <button class="step active" data-step="1">1. Project</button>
+        <button class="step" data-step="2">2. Describe</button>
+        <button class="step" data-step="3">3. Clarify</button>
+        <button class="step" data-step="4">4. Review</button>
+        <button class="step" data-step="5">5. Execute</button>
+      </nav>
+
+      <!-- Step 1: Project Selection -->
+      <section id="step-1" class="step-content active">
+        <h2>Select Project</h2>
+        <p>Choose the Node.js project folder you want SWARM to work on.</p>
+
+        <div class="project-browser">
+          <div class="path-input">
+            <label for="project-path">Project Path:</label>
+            <input type="text" id="project-path" placeholder="/path/to/your/project">
+            <button id="browse-btn">Browse</button>
+          </div>
+
+          <div id="directory-tree" class="directory-tree">
+            <!-- Directory listing will be populated here -->
+          </div>
+
+          <div id="project-info" class="project-info hidden">
+            <h3>Project Details</h3>
+            <div id="project-details"></div>
+          </div>
+        </div>
+
+        <div class="step-actions">
+          <button id="next-step-1" class="btn-primary" disabled>Next: Describe Feature</button>
+        </div>
+      </section>
+
+      <!-- Step 2: Feature Description -->
+      <section id="step-2" class="step-content">
+        <h2>Describe Your Feature</h2>
+        <p>Tell SWARM what you want to build or change in your project.</p>
+
+        <div class="description-input">
+          <textarea id="feature-description"
+                    placeholder="Describe the feature, bug fix, or change you want...&#10;&#10;Be specific about:&#10;- What should happen&#10;- Who will use it&#10;- Any constraints or requirements"
+                    rows="10"></textarea>
+          <div class="char-count"><span id="char-count">0</span> characters</div>
+        </div>
+
+        <div class="step-actions">
+          <button id="prev-step-2" class="btn-secondary">Back</button>
+          <button id="next-step-2" class="btn-primary" disabled>Next: Answer Questions</button>
+        </div>
+      </section>
+
+      <!-- Step 3: Clarifying Questions -->
+      <section id="step-3" class="step-content">
+        <h2>Clarifying Questions</h2>
+        <p>Answer these questions to help SWARM understand your requirements better.</p>
+
+        <div id="questions-container" class="questions-container">
+          <div class="loading">Generating questions...</div>
+        </div>
+
+        <div class="step-actions">
+          <button id="prev-step-3" class="btn-secondary">Back</button>
+          <button id="next-step-3" class="btn-primary" disabled>Next: Review Plan</button>
+        </div>
+      </section>
+
+      <!-- Step 4: Plan Review -->
+      <section id="step-4" class="step-content">
+        <h2>Review Plan</h2>
+        <p>Review the generated plan before SWARM starts working.</p>
+
+        <div id="plan-container" class="plan-container">
+          <div class="loading">Generating plan...</div>
+        </div>
+
+        <div class="step-actions">
+          <button id="prev-step-4" class="btn-secondary">Back</button>
+          <button id="approve-plan" class="btn-primary">Approve & Start</button>
+        </div>
+      </section>
+
+      <!-- Step 5: Execution Monitor -->
+      <section id="step-5" class="step-content">
+        <h2>Execution</h2>
+        <p>SWARM is working on your project. Watch the progress below.</p>
+
+        <div class="execution-monitor">
+          <div class="progress-section">
+            <h3>Progress</h3>
+            <div class="progress-bar">
+              <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <span id="progress-text">0% complete</span>
+          </div>
+
+          <div class="metrics-section">
+            <div class="metric">
+              <span class="metric-label">Agents Active</span>
+              <span id="agents-active" class="metric-value">0</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Tasks Complete</span>
+              <span id="tasks-complete" class="metric-value">0</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Cost</span>
+              <span id="cost-display" class="metric-value">$0.00</span>
+            </div>
+          </div>
+
+          <div class="activity-log">
+            <h3>Activity Log</h3>
+            <div id="activity-log" class="log-content">
+              <!-- Log entries will be added here -->
+            </div>
+          </div>
+        </div>
+
+        <div class="step-actions">
+          <button id="pause-execution" class="btn-secondary">Pause</button>
+          <button id="cancel-execution" class="btn-danger">Cancel</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/api/ape.js"></script>
+  <script src="/js/wizard.js"></script>
+</body>
+</html>

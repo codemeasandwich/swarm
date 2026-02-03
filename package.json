@@ -8,8 +8,9 @@
     "orchestrate": "./bin/orchestrate.js"
   },
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node bin/start.js",
     "cli": "node bin/orchestrate.js",
+    "lib": "node src/index.js",
     "test": "node --test tests/**/*.test.js",
     "test:coverage": "c8 node --test tests/**/*.test.js",
     "lint": "eslint src/"
@@ -25,6 +26,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "api-ape": "file:/Users/bri/www/api-ape",
+    "cli-ui": "file:/Users/bri/www/CliUI/index.js",
     "chokidar": "^3.6.0",
     "commander": "^12.0.0",
     "scribbles": "^1.7.0"
